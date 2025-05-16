@@ -1,0 +1,21 @@
+<!-- filepath: c:\Users\emirr\OneDrive\Masaüstü\KahootClone\views\login.ejs -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giriş Yap</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Giriş Yap</h1>
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+      <input type="password" name="password" placeholder="Şifre" required>
+      <button type="submit">Giriş Yap</button>
+    </form>
+    <a href="/register">Kayıt Ol</a>
+  </div>
+</body>
+</html>

@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const dotenv = require('dotenv');
 const logger = require('pino')({ base: { pid: process.pid, hostname: require('os').hostname() } });
+const session = require('express-session');
 
 // .env dosyasını yükle
 dotenv.config();
@@ -20,6 +21,9 @@ const io = socketIo(server, {
 const lobbies = {};
 const TIMER_DURATION = 15; // Soru süresi (saniye)
 const BREAK_DURATION = 5;  // Mola süresi (saniye)
+
+// In-memory user store (use a database in production)
+const users = {};
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
@@ -196,10 +200,64 @@ function endGame(lobbyId) {
   io.to(lobbyId).emit('game_over', { winner, scores: lobby.scores });
 }
 
-// Routes
-app.get('/', (req, res) => {
+// Add session middleware
+app.use(session({
+  secret: 'your-secret-key', // Change this to a secure key
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+// Middleware to check if user is logged in
+function isAuthenticated(req, res, next) {
+  if (req.session && req.session.username) {
+    return next();
+  }
+  res.redirect('/login');
+}
+
+// Login route
+app.get('/login', (req, res) => {
+  res.render('login'); // Render login.ejs
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (users[username] && users[username].password === password) {
+    req.session.username = username;
+    res.redirect('/');
+  } else {
+    res.status(401).send('Invalid username or password');
+  }
+});
+
+// Register route
+app.get('/register', (req, res) => {
+  res.render('register'); // Render register.ejs
+});
+
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  if (users[username]) {
+    res.status(400).send('User already exists');
+  } else {
+    users[username] = { password };
+    req.session.username = username;
+    res.redirect('/');
+  }
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/login');
+  });
+});
+
+// Protect routes
+app.get('/', isAuthenticated, (req, res) => {
   logger.info('Rendering index page');
-  res.render('index');
+  res.render('index', { username: req.session.username });
 });
 
 app.get('/lobbies', (req, res) => {
