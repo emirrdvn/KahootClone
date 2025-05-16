@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobi <%= lobbyId %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Lobi <%= lobbyId %></h1>
+    <div id="lobby-info"></div>
+    <div class="button-container">
+      <button id="ready-btn" class="button">Hazırım</button>
+      <button id="leave-btn" class="button button-danger">Lobiden Ayrıl</button>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const lobbyId = '<%= lobbyId %>';
+    const username = urlParams.get('username');
+
+    socket.emit('join_lobby', { lobbyId, username });
+
+    socket.on('lobby_update', (lobby) => {
+      const lobbyInfo = document.getElementById('lobby-info');
+      lobbyInfo.innerHTML = `
+        <p>Konu: ${lobby.topic}</p>
+        <p>Oyuncular: ${Object.keys(lobby.players).join(', ')}</p>
+        <p>Durum: ${lobby.status}</p>
+      `;
+    });
+
+    socket.on('start_game', ({ lobbyId }) => {
+      window.location.href = `/game/${lobbyId}?username=${username}`;
+    });
+
+    document.getElementById('ready-btn').addEventListener('click', () => {
+      socket.emit('ready', { lobbyId, username });
+    });
+
+    document.getElementById('leave-btn').addEventListener('click', () => {
+      socket.emit('leave_lobby', { lobbyId, username });
+      window.location.href = '/lobbies';
+    });
+
+    socket.on('error', ({ message }) => {
+      alert(message);
+    });
+  </script>
+</body>
+</html>

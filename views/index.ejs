@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>En Yakın Tahmin Oyunu</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>En Yakın Tahmin Oyunu</h1>
+    <form id="create-lobby-form">
+      <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+      <select name="topic" required>
+        <option value="" disabled selected>Konu Seç</option>
+        <option value="Spor">Spor</option>
+        <option value="Tarih">Tarih</option>
+        <option value="Coğrafya">Coğrafya</option>
+        <option value="Genel Kültür">Genel Kültür</option>
+        <option value="Bilim">Bilim</option>
+        <option value="Filmler ve Diziler">Filmler ve Diziler</option>
+      </select>
+      <button type="submit">Lobi Oluştur</button>
+    </form>
+    <a href="/lobbies">Lobileri Gör</a>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+  <script>
+    document.getElementById('create-lobby-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      fetch('/create_lobby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        window.location.href = `/lobby/${data.lobbyId}?username=${data.username}&credits=${data.credits}`;
+      })
+      .catch(err => console.error('Lobi oluşturma hatası:', err));
+    });
+  </script>
+</body>
+</html>

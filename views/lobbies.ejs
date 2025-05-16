@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mevcut Lobiler</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Mevcut Lobiler</h1>
+    <% Object.entries(lobbies).forEach(([lobbyId, lobby]) => { %>
+      <% if (lobby.status === 'waiting' && Object.keys(lobby.players).length < 2) { %>
+        <div class="lobby">
+          <p>Lobi: <%= lobbyId %> | Konu: <%= lobby.topic %> | Bahis: <%= lobby.bet %></p>
+          <form class="join-lobby-form" data-lobby-id="<%= lobbyId %>">
+            <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+            <button type="submit">Katıl</button>
+          </form>
+        </div>
+      <% } %>
+    <% }); %>
+    <a href="/">Ana Sayfaya Dön</a>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+  <script>
+    document.querySelectorAll('.join-lobby-form').forEach(form => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const lobbyId = form.dataset.lobbyId;
+        const formData = new FormData(form);
+        const username = formData.get('username');
+        socket.emit('join_lobby', { lobbyId, username });
+        window.location.href = `/lobby/${lobbyId}?username=${username}`;
+      });
+    });
+  </script>
+</body>
+</html>
