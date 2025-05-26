@@ -221,6 +221,11 @@ app.get('/login', (req, res) => {
   res.render('login'); // Render login.ejs
 });
 
+// ANA EKRAN İÇİN ROUTE
+app.get('/mainscreen', (req, res) => {
+    res.render('mainscreen'); // Bu, views/mainscreen.ejs dosyasını render eder
+});
+
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (users[username] && users[username].password === password) {
@@ -264,6 +269,8 @@ app.get('/lobbies', (req, res) => {
   logger.info('Rendering lobbies page');
   res.render('lobbies', { lobbies });
 });
+
+app
 
 app.post('/create_lobby', (req, res) => {
   const { username, topic } = req.body; // Sadece username ve topic alın
