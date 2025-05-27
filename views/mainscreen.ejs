@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <%- include('partials/_head_content', { title: 'Kahoot! Ana Sayfa' }) %>
+    
+   
+    <style>
+        main { /* mainscreen.ejs'e özgü main stili */
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        .main-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 35px;
+        }
+
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 240px; 
+            height: 210px;
+            padding: 25px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            color: white;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-button:hover {
+            transform: translateY(-7px) scale(1.04);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-button .icon-container {
+            font-size: 64px;
+            margin-bottom: 18px;
+            line-height: 1;
+        }
+
+        .action-button span {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .action-button.join-game {
+            background-color: #2c9b46; /* Kahoot Green */
+        }
+        .action-button.join-game .icon-container {
+            color: #ffffff;
+        }
+
+        .action-button.create-game {
+            background-color: #0078d4; /* Vibrant Blue */
+        }
+        .action-button.create-game .icon-container {
+            color: #ffffff;
+        }
+
+        /* mainscreen.ejs'e özgü responsive ayarlar */
+        @media (max-width: 768px) {
+            .main-action-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 25px;
+            }
+            .action-button {
+                width: 200px;
+                height: 180px;
+            }
+            .action-button .icon-container {
+                font-size: 50px;
+            }
+            .action-button span {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/_header_html') %>
+
+    <main>
+        <div class="main-action-buttons">
+            <a href="/index" style="text-decoration: none;">
+            <button class="action-button join-game">
+                <div class="icon-container">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <span>Join a Game</span>
+            </button>
+            </a>
+            <a href="/lobbies" style="text-decoration: none;">
+            <button class="action-button create-game">
+                <div class="icon-container">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <span>Create a Game</span>
+            </button>
+            </a>
+        </div>
+    </main>
+
+    <%- include('partials/_footer_html') %>
+</body>
+</html>

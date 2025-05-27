@@ -4,9 +4,29 @@ const socketIo = require('socket.io');
 const dotenv = require('dotenv');
 const logger = require('pino')({ base: { pid: process.pid, hostname: require('os').hostname() } });
 const session = require('express-session');
+const { Pool } = require('pg');
 
 // .env dosyasını yükle
 dotenv.config();
+
+// PostgreSQL bağlantı havuzu oluştur
+const pool = new Pool({
+  connectionString: 'postgresql://root:e7Zj1Urnd9bdPLCjWBIOUORJCONP3dF0@dpg-d0quc195pdvs73avc2m0-a.frankfurt-postgres.render.com/kahoot_t0pd',
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+// PostgreSQL bağlantısını test et
+pool.connect((err) => {
+  if (err) {
+    logger.error('PostgreSQL bağlantısı kurulamadı:', err);
+  } else {
+    logger.info('PostgreSQL veritabanına bağlanıldı');
+    
+  }
+});
+
 
 // Express ve Socket.IO ayarları
 const app = express();
@@ -221,13 +241,34 @@ app.get('/login', (req, res) => {
   res.render('login'); // Render login.ejs
 });
 
-app.post('/login', (req, res) => {
+// ANA EKRAN İÇİN ROUTE
+app.get('/mainscreen', (req, res) => {
+    res.render('mainscreen'); // Bu, views/mainscreen.ejs dosyasını render eder
+});
+
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  if (users[username] && users[username].password === password) {
+
+  try {
+    // Check if the user exists
+    const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (userCheck.rows.length === 0) {
+      return res.status(401).send('Invalid username or password');
+    }
+
+    // Validate the password
+    const user = userCheck.rows[0];
+    if (user.password !== password) {
+      return res.status(401).send('Invalid username or password');
+    }
+
+    // Set session and redirect
     req.session.username = username;
-    res.redirect('/');
-  } else {
-    res.status(401).send('Invalid username or password');
+    res.redirect('/mainscreen');
+    logger.info(`User ${username} logged in successfully`);
+  } catch (err) {
+    logger.error('Error during login:', err);
+    res.status(500).send('Internal server error');
   }
 });
 
@@ -236,14 +277,23 @@ app.get('/register', (req, res) => {
   res.render('register'); // Render register.ejs
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   const { username, password } = req.body;
-  if (users[username]) {
-    res.status(400).send('User already exists');
-  } else {
-    users[username] = { password };
+
+  try {
+    // Check if the user already exists
+    const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (userCheck.rows.length > 0) {
+      return res.status(400).send('User already exists');
+    }
+
+    // Insert the new user
+    await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, password]);
     req.session.username = username;
-    res.redirect('/');
+    res.redirect('/mainscreen'); // Redirect to mainscreen after registration
+  } catch (err) {
+    logger.error('Error during registration:', err);
+    res.status(500).send('Internal server error');
   }
 });
 
@@ -256,13 +306,18 @@ app.get('/logout', (req, res) => {
 
 // Protect routes
 app.get('/', isAuthenticated, (req, res) => {
-  logger.info('Rendering index page');
-  res.render('index', { username: req.session.username });
+  logger.info('Rendering mainscreen page');
+  res.render('mainscreen', { username: req.session.username });
 });
 
 app.get('/lobbies', (req, res) => {
   logger.info('Rendering lobbies page');
   res.render('lobbies', { lobbies });
+});
+
+app.get('/index',isAuthenticated, (req, res) => {
+  logger.info('Rendering index page');
+  res.render('index', { username: req.session.username }); // Render index.ejs
 });
 
 app.post('/create_lobby', (req, res) => {
