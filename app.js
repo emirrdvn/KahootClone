@@ -230,7 +230,8 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (users[username] && users[username].password === password) {
     req.session.username = username;
-    res.redirect('/');
+    res.redirect('/mainscreen'); // Redirect to mainscreen after login
+    logger.info(`User ${username} logged in successfully`);
   } else {
     res.status(401).send('Invalid username or password');
   }
@@ -248,7 +249,7 @@ app.post('/register', (req, res) => {
   } else {
     users[username] = { password };
     req.session.username = username;
-    res.redirect('/');
+    res.redirect('/mainscreen'); // Redirect to mainscreen after registration
   }
 });
 
@@ -261,8 +262,8 @@ app.get('/logout', (req, res) => {
 
 // Protect routes
 app.get('/', isAuthenticated, (req, res) => {
-  logger.info('Rendering index page');
-  res.render('index', { username: req.session.username });
+  logger.info('Rendering mainscreen page');
+  res.render('mainscreen', { username: req.session.username });
 });
 
 app.get('/lobbies', (req, res) => {
@@ -270,7 +271,10 @@ app.get('/lobbies', (req, res) => {
   res.render('lobbies', { lobbies });
 });
 
-app
+app.get('/index',isAuthenticated, (req, res) => {
+  logger.info('Rendering index page');
+  res.render('index', { username: req.session.username }); // Render index.ejs
+});
 
 app.post('/create_lobby', (req, res) => {
   const { username, topic } = req.body; // Sadece username ve topic alın
