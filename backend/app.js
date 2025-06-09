@@ -88,10 +88,6 @@ const dummyQuestions = {
 function generateQuestions(topic) {
   logger.info(`Returning dummy questions for topic: ${topic}`);
   const questions = dummyQuestions[topic] || [];
-  if (questions.length < 5) {
-    logger.error(`Not enough questions for topic: ${topic}`);
-    return [];
-  }
   return questions;
 }
 
@@ -105,7 +101,7 @@ function startGame(lobbyId) {
   lobby.guesses = {};
   const questions = generateQuestions(lobby.topic);
   lobby.questionQueue = questions;
-  startNewRound(lobbyId);
+  setTimeout(() => startNewRound(lobbyId), 1000);
 }
 
 // Yeni tur başlatma
@@ -286,8 +282,7 @@ io.on('connection', (socket) => {
     if (lobbies[lobbyId] && username in lobbies[lobbyId].players) {
       lobbies[lobbyId].players[username].ready = true;
       io.to(lobbyId).emit('lobby_update', lobbies[lobbyId]);
-      if (Object.keys(lobbies[lobbyId].players).length === 2 &&
-          Object.values(lobbies[lobbyId].players).every(p => p.ready)) {
+      if (Object.values(lobbies[lobbyId].players).every(p => p.ready)) {
         io.to(lobbyId).emit('start_game', { lobbyId });
         startGame(lobbyId);
       }
