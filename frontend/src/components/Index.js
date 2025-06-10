@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function Index({ username }) {
-  const [formData, setFormData] = useState({ username, topic: 'Spor' });
+  const [formData, setFormData] = useState({ username, topic: 'Spor', questionCount: 5 });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -72,6 +72,18 @@ function Index({ username }) {
               <option value="Bilim">Bilim</option>
               <option value="Filmler ve Diziler">Filmler ve Diziler</option>
             </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2">Soru Sayısı (1-10)</label>
+            <input
+              type="number"
+              name="questionCount"
+              value={formData.questionCount}
+              onChange={handleChange}
+              min="1"
+              max="10"
+              className="w-full p-2 border rounded"
+            />
           </div>
           <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
             Lobi Oluştur
