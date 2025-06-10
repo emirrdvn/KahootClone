@@ -32,7 +32,7 @@ function Lobbies({ username }) {
           <ul className="space-y-4">
             {Object.entries(lobbies).map(([lobbyId, lobby]) => (
               <li key={lobbyId} className="border p-4 rounded">
-                <p>Lobi: {lobbyId} | Konu: {lobby.topic} | Bahis: {lobby.bet || 'Yok'}</p>
+                <p>Lobi: {lobbyId} | Konu: {lobby.topic} | Soru Sayısı: {lobby.questionCount}</p>
                 <button
                   onClick={() => handleJoin(lobbyId)}
                   className="mt-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
