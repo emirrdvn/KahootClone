@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -7,9 +6,14 @@ const logger = require('pino')({ base: { pid: process.pid, hostname: require('os
 const session = require('express-session');
 const { Pool } = require('pg');
 const cors = require('cors');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // .env dosyasını yükle
 dotenv.config();
+
+// Gemini API ayarları
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 // PostgreSQL bağlantı havuzu
 const pool = new Pool({
@@ -38,57 +42,60 @@ const lobbies = {};
 const TIMER_DURATION = 15;
 const BREAK_DURATION = 5;
 
-// Dummy sorular
-const dummyQuestions = {
-  'Spor': [
-    { question: 'Futbolda bir mac kac dakika surer (normal sure)?', answer: 90 },
-    { question: 'Bir basketbol macinda her ceyrek kac dakikadir (NBA)?', answer: 12 },
-    { question: 'Olimpiyat oyunlari kac yilda bir duzenlenir?', answer: 4 },
-    { question: 'Teniste bir seti kazanmak icin kac oyun gerekir (minimum)?', answer: 6 },
-    { question: 'Formula 1\'de bir yarista kac tur donulur (ortalama)?', answer: 70 }
-  ],
-  'Tarih': [
-    { question: 'Osmanli Imparatorlugu kac yilinda kuruldu?', answer: 1299 },
-    { question: 'Fransiz Devrimi hangi yilda basladi?', answer: 1789 },
-    { question: 'Ilk Ay’a inis hangi yilda gerceklesti?', answer: 1969 },
-    { question: 'Birinci Dunya Savasi kac yilinda sona erdi?', answer: 1918 },
-    { question: 'Berlin Duvari kac yilinda yikildi?', answer: 1989 }
-  ],
-  'Cografya': [
-    { question: 'Dunyadaki kita sayisi kactir?', answer: 7 },
-    { question: 'Everest Dagi’nin yuksekligi yaklasik kac metredir?', answer: 8848 },
-    { question: 'Amazon Nehri’nin uzunlugu yaklasik kac kilometredir?', answer: 6575 },
-    { question: 'Afrika’daki ulke sayisi kactir?', answer: 54 },
-    { question: 'Avustralya’nin yuzolcumu yaklasik kac milyon kilometrekaredir?', answer: 7 }
-  ],
-  'Genel Kultur': [
-    { question: 'Bir yilda kac gun vardir?', answer: 365 },
-    { question: 'Insan vucudunda kac kemik bulunur?', answer: 206 },
-    { question: 'Piyanonun tus sayisi kactir?', answer: 88 },
-    { question: 'Bir satranc tahtasinda kac kare vardir?', answer: 64 },
-    { question: 'Bir deste iskambil kagidinda kac kart vardir?', answer: 52 }
-  ],
-  'Bilim': [
-    { question: 'Isigin hizi yaklasik kac kilometre/saniyedir?', answer: 300000 },
-    { question: 'Insan vucudunda kac kromozom bulunur?', answer: 46 },
-    { question: 'Dunya’nin Gunes’e ortalama uzakligi kac milyon kilometredir?', answer: 150 },
-    { question: 'Periyodik tabloda kac element vardir (2025 itibariyla)?', answer: 118 },
-    { question: 'Bir mol gazda kac molekul bulunur (Avogadro sayisi)?', answer: 602000000000000000000000 }
-  ],
-  'Filmler ve Diziler': [
-    { question: 'Yuzuklerin Efendisi uclemesinde kac film vardir?', answer: 3 },
-    { question: 'Harry Potter serisinde kac film cekildi?', answer: 8 },
-    { question: 'Ilk Star Wars filmi kac yilinda yayinlandi?', answer: 177 },
-    { question: 'James Bond serisinde kac film vardir (2025 itibariyla)?', answer: 25 },
-    { question: 'Breaking Bad dizisi kac sezon surdu?', answer: 5 }
-  ]
-};
-
 // Soru üretme fonksiyonu
-function generateQuestions(topic) {
-  logger.info(`Returning dummy questions for topic: ${topic}`);
-  const questions = dummyQuestions[topic] || [];
-  return questions;
+async function generateQuestions(topic, questionCount) {
+  logger.info(`Generating ${questionCount} questions for topic: ${topic} using Gemini API`);
+  try {
+    const prompt = `
+      ${topic} konusunda ${questionCount} adet quiz sorusu üret. Her soru için:
+      - Soruyu (question),
+      - 4 adet şık (options, dizi olarak, karışık sıralı),
+      - Doğru cevabı (correctAnswer, şıklardan biriyle aynı olmalı)
+      JSON formatında döndür. Şıklar ve doğru cevap metin veya sayı olabilir.
+      Sorular Türkçe, net ve ${topic} konusuna uygun olsun.
+      
+      Topic rehberi:
+      - Genel Kültür: Gündelik bilgiler, popüler kültür, müzik, sanatçı, film, edebiyat, atasözleri.
+        Örnek: "Hangi film 'Hakuna Matata' sloganıyla bilinir?" (Aslan Kral)
+      - Tarih: Dünya ve Türkiye tarihi, önemli olaylar, kişiler, savaşlar, devrimler.
+        Örnek: "Osmanlı İmparatorluğu ne zaman kuruldu?" (1299)
+      - Bilim: Fizik, kimya, biyoloji, astronomi, teknoloji.
+        Örnek: "Hangi gezegen 'Kızıl Gezegen' olarak bilinir?" (Mars)
+      - Coğrafya: Ülkeler, başkentler, nehirler, dağlar, kıtalar.
+        Örnek: "Amazon Nehri hangi kıtadadır?" (Güney Amerika)
+      - Spor: Futbol, basketbol, olimpiyatlar, sporcular, kurallar.
+        Örnek: "Futbol maçı normal sürede kaç dakika oynanır?" (90)
+      - Filmler ve Diziler: Popüler filmler, diziler, oyuncular, yönetmenler.
+        Örnek: "Breaking Bad dizisi kaç sezon sürdü?" (5)
+      
+      Örnek format:
+      [
+        {
+          "question": "Osmanlı İmparatorluğu ne zaman kuruldu?",
+          "options": ["1299", "1453", "1071", "1923"],
+          "correctAnswer": "1299"
+        },
+        {
+          "question": "Hangi gezegen 'Kızıl Gezegen' olarak bilinir?",
+          "options": ["Mars", "Jüpiter", "Venüs", "Merkür"],
+          "correctAnswer": "Mars"
+        },
+        ...
+      ]
+    `;
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const cleanedText = responseText.replace(/```json\n|\n```/g, '').trim();
+    const questions = JSON.parse(cleanedText);
+    if (!Array.isArray(questions) || questions.length < questionCount) {
+      logger.error(`Gemini API insufficient questions for topic: ${topic}, requested: ${questionCount}, received: ${questions.length}`);
+      return [];
+    }
+    return questions;
+  } catch (error) {
+    logger.error(`Gemini API error for topic ${topic}:`, error);
+    return [];
+  }
 }
 
 // Oyun başlatma
@@ -99,9 +106,20 @@ function startGame(lobbyId) {
   lobby.status = 'playing';
   lobby.currentQuestion = 0;
   lobby.guesses = {};
-  const questions = generateQuestions(lobby.topic);
-  lobby.questionQueue = questions;
-  setTimeout(() => startNewRound(lobbyId), 1000);
+  generateQuestions(lobby.topic, lobby.questionCount).then(questions => {
+    if (questions.length === 0) {
+      logger.error(`No questions generated for lobby ${lobbyId}`);
+      io.to(lobbyId).emit('error', { message: 'Soru üretilemedi, lobi kapatılıyor' });
+      endGame(lobbyId);
+      return;
+    }
+    lobby.questionQueue = questions;
+    setTimeout(() => startNewRound(lobbyId), 1000);
+  }).catch(error => {
+    logger.error(`Error generating questions for lobby ${lobbyId}:`, error);
+    io.to(lobbyId).emit('error', { message: 'Soru üretilemedi, lobi kapatılıyor' });
+    endGame(lobbyId);
+  });
 }
 
 // Yeni tur başlatma
@@ -114,53 +132,37 @@ function startNewRound(lobbyId) {
   const questionData = lobby.questionQueue.shift();
   lobby.currentQuestionData = questionData;
   lobby.guesses = {};
-  const options = shuffleOptions([
-    questionData.answer,
-    questionData.answer + 5,
-    questionData.answer - 5,
-    questionData.answer + 10
-  ]);
   logger.info(`Sending new_round to lobby ${lobbyId}: ${questionData.question}`);
   io.to(lobbyId).emit('new_round', {
     question: questionData.question,
-    options,
+    options: questionData.options,
     players: Object.keys(lobby.players),
     scores: lobby.scores,
     timer: TIMER_DURATION
   });
-  setTimeout(() => evaluateGuesses(lobbyId), TIMER_DURATION * 1000);
+  // Timeoutu sakla
+  lobby.timeoutId = setTimeout(() => evaluateGuesses(lobbyId), TIMER_DURATION * 1000);
 }
 
-// Seçenekleri karıştırma
-function shuffleOptions(options) {
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
-  return options;
-}
-
-// Tahminleri değerlendirme
+// Tahminleri değerlendir
 function evaluateGuesses(lobbyId) {
   if (!lobbies[lobbyId]) return;
   logger.info(`Evaluating guesses in lobby ${lobbyId}`);
   const lobby = lobbies[lobbyId];
-  const correctAnswer = lobby.currentQuestionData.answer;
+  const correctAnswer = lobby.currentQuestionData.correctAnswer;
   const guesses = lobby.guesses;
   let result;
   const winners = Object.keys(guesses).filter(player => guesses[player] === correctAnswer);
   if (winners.length > 0) {
     winners.forEach(winner => {
-      lobby.scores[winner] += 1;
+      lobby.scores[winner]++;
     });
-    result = { correctAnswer, winners };
-  } else {
-    result = { correctAnswer, winners: [] };
   }
+  result = { correctAnswer, winners };
   io.to(lobbyId).emit('round_result', result);
   setTimeout(() => {
     if (!lobbies[lobbyId]) return;
-    if (Math.max(...Object.values(lobby.scores)) >= 3 || !lobby.questionQueue.length) {
+    if (!lobby.questionQueue.length) {
       endGame(lobbyId);
     } else {
       startNewRound(lobbyId);
@@ -168,18 +170,20 @@ function evaluateGuesses(lobbyId) {
   }, BREAK_DURATION * 1000);
 }
 
-// Oyunu bitirme
+// Oyunu bitir
 function endGame(lobbyId) {
   if (!lobbies[lobbyId]) return;
   logger.info(`Ending game in lobby ${lobbyId}`);
   const lobby = lobbies[lobbyId];
-  const winner = Object.keys(lobby.scores).reduce((a, b) =>
-    lobby.scores[a] > lobby.scores[b] ? a : b, null
-  );
-  // Bet özelliği kaldırıldı çünkü tanımlı değil
-  io.to(lobbyId).emit('game_over', { winner, scores: lobby.scores });
+  // En yüksek skoru bul
+  const maxScore = Math.max(...Object.values(lobby.scores));
+  if (maxScore === 0) {
+    io.to(lobbyId).emit('game_over', { winners: [], scores: lobby.scores });
+  }
+  // En yüksek skora sahip tüm oyuncuları listele
+  const winners = Object.keys(lobby.scores).filter(player => lobby.scores[player] === maxScore);
+  io.to(lobbyId).emit('game_over', { winners, scores: lobby.scores });
 }
-
 // Middleware
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
@@ -242,9 +246,13 @@ app.get('/lobbies', (req, res) => {
 });
 
 app.post('/create_lobby', isAuthenticated, (req, res) => {
-  const { username, topic } = req.body;
-  if (!username || !topic) {
-    return res.status(400).json({ message: 'Username and topic are required' });
+  const { username, topic, questionCount } = req.body;
+  if (!username || !topic || !questionCount) {
+    return res.status(400).json({ message: 'Username, topic, and question count are required' });
+  }
+  const count = parseInt(questionCount);
+  if (isNaN(count) || count < 1 || count > 10) {
+    return res.status(400).json({ message: 'Question count must be between 1 and 10' });
   }
   const lobbyId = `lobby_${Object.keys(lobbies).length + 1}`;
   lobbies[lobbyId] = {
@@ -252,9 +260,10 @@ app.post('/create_lobby', isAuthenticated, (req, res) => {
     players: { [username]: { ready: false } },
     scores: { [username]: 0 },
     topic,
+    questionCount: count,
     status: 'waiting'
   };
-  logger.info(`New lobby created: ${lobbyId} by ${username}`);
+  logger.info(`New lobby created: ${lobbyId} by ${username} with ${count} questions`);
   res.json({ lobbyId, username });
 });
 
@@ -263,7 +272,7 @@ io.on('connection', (socket) => {
   logger.info(`New client connected: ${socket.id}`);
   socket.on('join_lobby', ({ lobbyId, username }) => {
     if (!lobbies[lobbyId]) {
-      socket.emit('error', { message: 'Lobi bulunamadı' });
+      socket.emit.livedata('error', { message: 'Lobi bulunamadı' });
       return;
     }
     const lobby = lobbies[lobbyId];
@@ -290,13 +299,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('submit_guess', ({ lobbyId, username, guess }) => {
-    try {
-      const guessValue = parseInt(guess);
-      if (username in lobbies[lobbyId].players) {
-        lobbies[lobbyId].guesses[username] = guessValue;
+    if (username in lobbies[lobbyId].players) {
+      lobbies[lobbyId].guesses[username] = guess;
+      logger.info(`Guess from ${username} in lobby ${lobbyId}: ${guess}`);
+      // Tüm oyuncular tahmin yaptıysa turu sonlandır
+      const lobby = lobbies[lobbyId];
+      const allPlayersGuessed = Object.keys(lobby.players).every(player => player in lobby.guesses);
+      if (allPlayersGuessed) {
+        logger.info(`All players guessed in lobby ${lobbyId}, ending round early`);
+        clearTimeout(lobby.timeoutId);
+        evaluateGuesses(lobbyId);
       }
-    } catch (error) {
-      socket.emit('error', { message: 'Geçersiz sayı formatı!' });
     }
   });
 
@@ -307,11 +320,13 @@ io.on('connection', (socket) => {
       socket.leave(lobbyId);
       if (!Object.keys(lobbies[lobbyId].players).length) {
         delete lobbies[lobbyId];
-      } else if (Object.keys(lobbies[lobbyId].players).length === 1 &&
-                 lobbies[lobbyId].status === 'playing') {
-        endGame(lobbyId);
+      } else if (lobbies[lobbyId].status === 'playing' && Object.keys(lobbies[lobbyId].players).length === 1) {
+        io.to(lobbyId).emit('game_over', {
+          winner: Object.keys(lobbies[lobbyId].players)[0],
+          scores: lobbies[lobbyId].scores
+        });
       }
-      if (lobbies[lobbyId]) {
+      if (lobbyId in lobbies) {
         io.to(lobbyId).emit('lobby_update', lobbies[lobbyId]);
       }
     }
