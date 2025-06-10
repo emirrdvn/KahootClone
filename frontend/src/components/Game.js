@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 
@@ -13,47 +13,74 @@ function Game({ username }) {
     scores: {}
   });
   const [result, setResult] = useState(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
+      socket.emit('join_lobby', { lobbyId, username });
     });
     socket.on('disconnect', () => {
       console.log('Socket disconnected');
     });
-    socket.emit('join_lobby', { lobbyId, username });
+    socket.on('lobby_update', (lobby) => {
+      console.log('lobby_update alındı:', lobby);
+    });
     socket.on('new_round', (data) => {
       console.log('new_round alındı:', JSON.stringify(data, null, 2));
       setGameData({
         question: data.question || 'Soru yüklenemedi',
         options: data.options || [],
-        timer: data.timer || 'Bekleniyor...',
+        timer: data.timer || 15,
         players: data.players || [],
         scores: data.scores || {}
       });
       setResult(null);
+      // Timer'ı başlat
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setGameData(prev => {
+          const newTimer = prev.timer - 1;
+          if (newTimer <= 0) {
+            clearInterval(timerRef.current);
+            return { ...prev, timer: 0 };
+          }
+          return { ...prev, timer: newTimer };
+        });
+      }, 1000);
     });
     socket.on('round_result', (data) => {
       console.log('round_result alındı:', data);
       setResult(data);
+      // Timer'ı durdur
+      if (timerRef.current) clearInterval(timerRef.current);
+      setGameData(prev => ({ ...prev, timer: 0 }));
     });
     socket.on('game_over', ({ winner, scores }) => {
       console.log('game_over alındı:', { winner, scores });
+      // Timer'ı durdur
+      if (timerRef.current) clearInterval(timerRef.current);
+      setGameData(prev => ({ ...prev, timer: 0 }));
       alert(`Oyun bitti! Kazanan: ${winner || 'Yok'}`);
       navigate('/lobbies');
     });
     socket.on('error', ({ message }) => {
       console.log('error alındı:', message);
+      // Timer'ı durdur
+      if (timerRef.current) clearInterval(timerRef.current);
       alert(message);
-      navigate('/lobbies');
+      setTimeout(() => navigate('/lobbies'), 500);
     });
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('lobby_update');
       socket.off('new_round');
       socket.off('round_result');
       socket.off('game_over');
       socket.off('error');
+      // Cleanup timer
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [lobbyId, username, navigate]);
 
@@ -62,8 +89,8 @@ function Game({ username }) {
   }, [gameData]);
 
   const handleGuess = (guess) => {
-    console.log('Gönderilen guess:', parseInt(guess));
-    socket.emit('submit_guess', { lobbyId, username, guess: parseInt(guess) });
+    console.log('Gönderilen guess:', guess);
+    socket.emit('submit_guess', { lobbyId, username, guess });
   };
 
   const handleLeave = () => {
@@ -84,6 +111,7 @@ function Game({ username }) {
                 key={index}
                 onClick={() => handleGuess(option)}
                 className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mb-2"
+                disabled={gameData.timer === 0}
               >
                 {option}
               </button>
