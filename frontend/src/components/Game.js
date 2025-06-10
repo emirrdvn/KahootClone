@@ -62,7 +62,8 @@ function Game({ username }) {
       if (timerRef.current) clearInterval(timerRef.current);
       setGameData(prev => ({ ...prev, timer: 0 }));
       alert(`Oyun bitti! Kazanan: ${winner || 'Yok'}`);
-      navigate('/lobbies');
+      socket.emit('leave_lobby', { lobbyId, username });
+      navigate('/mainscreen');
     });
     socket.on('error', ({ message }) => {
       console.log('error alındı:', message);
