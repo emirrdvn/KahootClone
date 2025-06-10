@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosConfig';
 
 function Lobbies({ username }) {
   const [lobbies, setLobbies] = useState({});
@@ -9,7 +9,7 @@ function Lobbies({ username }) {
   useEffect(() => {
     const fetchLobbies = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/lobbies', { withCredentials: true });
+        const response = await api.get('/lobbies');
         setLobbies(response.data.lobbies);
       } catch (err) {
         console.error('Lobi listesi alınamadı:', err);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosConfig';
 
 function Index({ username }) {
   const [formData, setFormData] = useState({ username, topic: 'Spor', questionCount: 5 });
@@ -14,7 +14,7 @@ function Index({ username }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/create_lobby', formData, { withCredentials: true });
+      const response = await api.post('/create_lobby', formData);
       navigate(`/lobby/${response.data.lobbyId}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Lobi oluşturma başarısız');
@@ -23,7 +23,7 @@ function Index({ username }) {
 
   const handleLogout = async () => {
     try {
-      await axios.get('http://localhost:5000/logout', { withCredentials: true });
+      await api.get('/logout');
       localStorage.removeItem('username');
       navigate('/login');
     } catch (err) {

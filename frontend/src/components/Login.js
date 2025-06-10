@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosConfig';
 
 function Login({ setUsername }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -14,9 +14,10 @@ function Login({ setUsername }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/login', formData, { withCredentials: true });
+      const response = await api.post('/login', formData);
+      const { token } = response.data;
+      localStorage.setItem('token', token); // Store the token
       setUsername(formData.username);
-      localStorage.setItem('username', formData.username);
       navigate('/mainscreen');
     } catch (err) {
       setError(err.response?.data?.message || 'Giriş başarısız');

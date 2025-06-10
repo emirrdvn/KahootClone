@@ -3,10 +3,17 @@ const http = require('http');
 const socketIo = require('socket.io');
 const dotenv = require('dotenv');
 const logger = require('pino')({ base: { pid: process.pid, hostname: require('os').hostname() } });
-const session = require('express-session');
+//const session = require('express-session');
 const { Pool } = require('pg');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+//Jwt based auth
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
+
 
 // .env dosyasını yükle
 dotenv.config();
@@ -188,19 +195,27 @@ function endGame(lobbyId) {
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(session({
+/*app.use(session({
   secret: 'your-secret-key',
   resave: false,
   saveUninitialized: true,
   cookie: { secure: false } // HTTPS için true yapın
-}));
+}));*/
 
 // Oturum kontrolü
 function isAuthenticated(req, res, next) {
-  if (req.session && req.session.username) {
-    return next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token missing or invalid' });
   }
-  res.status(401).json({ message: 'Unauthorized' });
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.username = decoded.username;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
 }
 
 // API rotaları
@@ -208,16 +223,22 @@ app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (userCheck.rows.length === 0 || userCheck.rows[0].password !== password) {
+    if (userCheck.rows.length === 0) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    req.session.username = username;
-    res.json({ message: 'Login successful', username });
+    const user = userCheck.rows[0];
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ message: 'Login successful', token });
   } catch (err) {
     logger.error('Error during login:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -226,9 +247,10 @@ app.post('/register', async (req, res) => {
     if (userCheck.rows.length > 0) {
       return res.status(400).json({ message: 'User already exists' });
     }
-    await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, password]);
-    req.session.username = username;
-    res.json({ message: 'Registration successful', username });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ message: 'Registration successful', token });
   } catch (err) {
     logger.error('Error during registration:', err);
     res.status(500).json({ message: 'Internal server error' });
@@ -246,7 +268,8 @@ app.get('/lobbies', (req, res) => {
 });
 
 app.post('/create_lobby', isAuthenticated, (req, res) => {
-  const { username, topic, questionCount } = req.body;
+  const username = req.username;
+  const { topic, questionCount } = req.body;
   if (!username || !topic || !questionCount) {
     return res.status(400).json({ message: 'Username, topic, and question count are required' });
   }
