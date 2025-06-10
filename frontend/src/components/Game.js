@@ -18,7 +18,8 @@ function Game({ username }) {
   useEffect(() => {
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
-      socket.emit('join_lobby', { lobbyId, username });
+      const token = localStorage.getItem('token'); // Token'ı al
+      socket.emit('join_lobby', { token, lobbyId, username }); // Token'ı da gönder
     });
     socket.on('disconnect', () => {
       console.log('Socket disconnected');

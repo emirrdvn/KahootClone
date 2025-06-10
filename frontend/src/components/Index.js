@@ -14,9 +14,14 @@ function Index({ username }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      console.log('Sending lobby data:', formData);
+      console.log('Token being sent:', localStorage.getItem('token'));
+
       const response = await api.post('/create_lobby', formData);
+      console.log('Lobby created:', response.data);
       navigate(`/lobby/${response.data.lobbyId}`);
     } catch (err) {
+      console.error('Error creating lobby:', err.response?.data?.message || err.message);
       setError(err.response?.data?.message || 'Lobi oluşturma başarısız');
     }
   };

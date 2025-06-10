@@ -8,15 +8,19 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+
 //Jwt based auth
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const passport = require('./auth/passport')
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
 
 
 // .env dosyasını yükle
 dotenv.config();
+
+// JWT Secret'ı loglayın
+console.log('JWT_SECRET in app.js:', process.env.JWT_SECRET || 'default_jwt_secret');
 
 // Gemini API ayarları
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -195,43 +199,40 @@ function endGame(lobbyId) {
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-/*app.use(session({
-  secret: 'your-secret-key',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // HTTPS için true yapın
-}));*/
+app.use(passport.initialize()); // Passport'u başlatın
 
 // Oturum kontrolü
 function isAuthenticated(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Token missing or invalid' });
-  }
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.username = decoded.username;
+  passport.authenticate('jwt', { session: false }, (err, user) => {
+    console.log('JWT Authentication Error:', err);
+    console.log('Authenticated User:', user);
+    if (err || !user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
-  }
+  })(req, res, next);
 }
 
 // API rotaları
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  logger.info(`Login attempt for username: ${username}`);
   try {
     const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    logger.info(`User query result: ${JSON.stringify(userCheck.rows)}`);
     if (userCheck.rows.length === 0) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const user = userCheck.rows[0];
     const valid = await bcrypt.compare(password, user.password);
+    logger.info(`Password validation result: ${valid}`);
     if (!valid) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
+    console.log('JWT_SECRET used for token creation:', JWT_SECRET); // Bu logu ekleyin
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ message: 'Login successful', token });
   } catch (err) {
     logger.error('Error during login:', err);
@@ -249,7 +250,7 @@ app.post('/register', async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ message: 'Registration successful', token });
   } catch (err) {
     logger.error('Error during registration:', err);
@@ -268,7 +269,7 @@ app.get('/lobbies', (req, res) => {
 });
 
 app.post('/create_lobby', isAuthenticated, (req, res) => {
-  const username = req.username;
+  const username = req.user.username; // Passport doğrulamasından gelen kullanıcı bilgisi
   const { topic, questionCount } = req.body;
   if (!username || !topic || !questionCount) {
     return res.status(400).json({ message: 'Username, topic, and question count are required' });
@@ -293,21 +294,29 @@ app.post('/create_lobby', isAuthenticated, (req, res) => {
 // Socket.IO olayları
 io.on('connection', (socket) => {
   logger.info(`New client connected: ${socket.id}`);
-  socket.on('join_lobby', ({ lobbyId, username }) => {
-    if (!lobbies[lobbyId]) {
-      socket.emit.livedata('error', { message: 'Lobi bulunamadı' });
-      return;
-    }
-    const lobby = lobbies[lobbyId];
-    if (username in lobby.players) {
+
+  socket.on('join_lobby', ({ token, lobbyId }) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        socket.emit('error', { message: 'Invalid or expired token' });
+        return;
+      }
+      const username = decoded.username;
+      if (!lobbies[lobbyId]) {
+        socket.emit('error', { message: 'Lobby not found' });
+        return;
+      }
+      const lobby = lobbies[lobbyId];
+      if (username in lobby.players) {
+        socket.join(lobbyId);
+        io.to(lobbyId).emit('lobby_update', lobby);
+        return;
+      }
+      lobby.players[username] = { ready: false };
+      lobby.scores[username] = 0;
       socket.join(lobbyId);
       io.to(lobbyId).emit('lobby_update', lobby);
-      return;
-    }
-    lobby.players[username] = { ready: false };
-    lobby.scores[username] = 0;
-    socket.join(lobbyId);
-    io.to(lobbyId).emit('lobby_update', lobby);
+    });
   });
 
   socket.on('ready', ({ lobbyId, username }) => {

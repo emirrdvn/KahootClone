@@ -8,7 +8,9 @@ function Lobby({ username }) {
   const [lobby, setLobby] = useState(null);
 
   useEffect(() => {
-    socket.emit('join_lobby', { lobbyId, username });
+    const token = localStorage.getItem('token'); // Token'ı al
+    socket.emit('join_lobby', { token, lobbyId, username }); // Token'ı da gönder
+    
     socket.on('lobby_update', (lobbyData) => {
       setLobby(lobbyData);
     });
