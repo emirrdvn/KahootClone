@@ -7,14 +7,10 @@ const logger = require('pino')({ base: { pid: process.pid, hostname: require('os
 const { Pool } = require('pg');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-
-//Jwt based auth
+// JWT based auth
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const passport = require('./auth/passport')
-
-
+const passport = require('./auth/passport');
 
 // .env dosyasını yükle
 dotenv.config();
@@ -53,7 +49,6 @@ const lobbies = {};
 const TIMER_DURATION = 15;
 const BREAK_DURATION = 5;
 
-// Soru üretme fonksiyonu
 async function generateQuestions(topic, questionCount) {
   logger.info(`Generating ${questionCount} questions for topic: ${topic} using Gemini API`);
   try {
@@ -63,21 +58,15 @@ async function generateQuestions(topic, questionCount) {
       - 4 adet şık (options, dizi olarak, karışık sıralı),
       - Doğru cevabı (correctAnswer, şıklardan biriyle aynı olmalı)
       JSON formatında döndür. Şıklar ve doğru cevap metin veya sayı olabilir.
-      Sorular Türkçe, net ve ${topic} konusuna uygun olsun.
+      Sorular Türkçe, net ve ${topic} konusuna uygun olsun. Tüm metinler UTF-8 uyumlu olmalı, özel karakterler (ş, ı, ğ, ü, ç, ö) doğru kullanılmalı.
       
       Topic rehberi:
       - Genel Kültür: Gündelik bilgiler, popüler kültür, müzik, sanatçı, film, edebiyat, atasözleri.
-        Örnek: "Hangi film 'Hakuna Matata' sloganıyla bilinir?" (Aslan Kral)
       - Tarih: Dünya ve Türkiye tarihi, önemli olaylar, kişiler, savaşlar, devrimler.
-        Örnek: "Osmanlı İmparatorluğu ne zaman kuruldu?" (1299)
       - Bilim: Fizik, kimya, biyoloji, astronomi, teknoloji.
-        Örnek: "Hangi gezegen 'Kızıl Gezegen' olarak bilinir?" (Mars)
       - Coğrafya: Ülkeler, başkentler, nehirler, dağlar, kıtalar.
-        Örnek: "Amazon Nehri hangi kıtadadır?" (Güney Amerika)
       - Spor: Futbol, basketbol, olimpiyatlar, sporcular, kurallar.
-        Örnek: "Futbol maçı normal sürede kaç dakika oynanır?" (90)
       - Filmler ve Diziler: Popüler filmler, diziler, oyuncular, yönetmenler.
-        Örnek: "Breaking Bad dizisi kaç sezon sürdü?" (5)
       
       Örnek format:
       [
@@ -86,25 +75,51 @@ async function generateQuestions(topic, questionCount) {
           "options": ["1299", "1453", "1071", "1923"],
           "correctAnswer": "1299"
         },
-        {
-          "question": "Hangi gezegen 'Kızıl Gezegen' olarak bilinir?",
-          "options": ["Mars", "Jüpiter", "Venüs", "Merkür"],
-          "correctAnswer": "Mars"
-        },
         ...
       ]
     `;
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    const cleanedText = responseText.replace(/```json\n|\n```/g, '').trim();
-    const questions = JSON.parse(cleanedText);
-    if (!Array.isArray(questions) || questions.length < questionCount) {
-      logger.error(`Gemini API insufficient questions for topic: ${topic}, requested: ${questionCount}, received: ${questions.length}`);
+    logger.info(`Raw Gemini response: ${responseText}`);
+    const cleanedText = Buffer.from(responseText.replace(/```json\n|\n```/g, '').trim(), 'utf8').toString('utf8');
+    logger.info(`Cleaned Gemini response: ${cleanedText}`);
+    // Kapsamlı karakter düzeltme
+    const normalizedText = cleanedText
+      .replace(/├▒/g, 'ı')
+      .replace(/┼ş/g, 'ş')
+      .replace(/├╝/g, 'ü')
+      .replace(/├ğ/g, 'ğ')
+      .replace(/├ç/g, 'ç')
+      .replace(/├Â/g, 'ö')
+      .replace(/─▒/g, '')
+      .replace(/─ş/g, 'ş')
+      .replace(/─ı/g, 'ı')
+      .replace(/─ğ/g, 'ğ')
+      .replace(/─ü/g, 'ü')
+      .replace(/─ç/g, 'ç')
+      .replace(/─ö/g, 'ö');
+    logger.info(`Normalized Gemini response: ${normalizedText}`);
+    // JSON geçerliliğini kontrol et
+    try {
+      const questions = JSON.parse(normalizedText);
+      if (!Array.isArray(questions) || questions.length < questionCount) {
+        logger.error(`Gemini API insufficient questions for topic: ${topic}, requested: ${questionCount}, received: ${questions.length}`);
+        return [];
+      }
+      // Soruları sanitize et
+      const sanitizedQuestions = questions.map(q => ({
+        question: q.question.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, ''),
+        options: q.options.map(opt => opt.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, '')),
+        correctAnswer: q.correctAnswer.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, '')
+      }));
+      logger.info(`Sanitized questions: ${JSON.stringify(sanitizedQuestions, null, 2)}`);
+      return sanitizedQuestions;
+    } catch (parseError) {
+      logger.error(`JSON parse error for topic ${topic}: ${parseError.message}`);
       return [];
     }
-    return questions;
   } catch (error) {
-    logger.error(`Gemini API error for topic ${topic}:`, error);
+    logger.error(`Gemini API error for topic ${topic}:`, error.stack);
     return [];
   }
 }
@@ -117,6 +132,10 @@ function startGame(lobbyId) {
   lobby.status = 'playing';
   lobby.currentQuestion = 0;
   lobby.guesses = {};
+  lobby.playerAnswers = {}; // Her oyuncunun cevaplarını saklamak için
+  Object.keys(lobby.players).forEach(player => {
+    lobby.playerAnswers[player] = [];
+  });
   generateQuestions(lobby.topic, lobby.questionCount).then(questions => {
     if (questions.length === 0) {
       logger.error(`No questions generated for lobby ${lobbyId}`);
@@ -162,14 +181,24 @@ function evaluateGuesses(lobbyId) {
   const lobby = lobbies[lobbyId];
   const correctAnswer = lobby.currentQuestionData.correctAnswer;
   const guesses = lobby.guesses;
-  let result;
   const winners = Object.keys(guesses).filter(player => guesses[player] === correctAnswer);
   if (winners.length > 0) {
     winners.forEach(winner => {
       lobby.scores[winner]++;
     });
   }
-  result = { correctAnswer, winners };
+  // Her oyuncunun cevabını kaydet
+  Object.keys(lobby.players).forEach(player => {
+    const userAnswer = guesses[player] || null; // Tahmin yoksa null
+    lobby.playerAnswers[player].push({
+      question: lobby.currentQuestionData.question,
+      options: lobby.currentQuestionData.options,
+      correctAnswer,
+      userAnswer,
+      isCorrect: userAnswer === correctAnswer
+    });
+  });
+  const result = { correctAnswer, winners };
   io.to(lobbyId).emit('round_result', result);
   setTimeout(() => {
     if (!lobbies[lobbyId]) return;
@@ -181,25 +210,60 @@ function evaluateGuesses(lobbyId) {
   }, BREAK_DURATION * 1000);
 }
 
-// Oyunu bitir
-function endGame(lobbyId) {
+// Oyunu bitir ve quiz geçmişini kaydet
+async function endGame(lobbyId) {
   if (!lobbies[lobbyId]) return;
   logger.info(`Ending game in lobby ${lobbyId}`);
   const lobby = lobbies[lobbyId];
-  // En yüksek skoru bul
   const maxScore = Math.max(...Object.values(lobby.scores));
-  if (maxScore === 0) {
-    io.to(lobbyId).emit('game_over', { winners: [], scores: lobby.scores });
+  const winners = maxScore === 0 ? [] : Object.keys(lobby.scores).filter(player => lobby.scores[player] === maxScore);
+
+  for (const player of Object.keys(lobby.players)) {
+    try {
+      const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [player]);
+      if (userResult.rows.length === 0) {
+        logger.error(`User not found for username: ${player}`);
+        continue;
+      }
+      const userId = userResult.rows[0].id;
+      const answers = lobby.playerAnswers[player] || [];
+      if (!Array.isArray(answers)) {
+        logger.error(`Invalid answers format for ${player} in lobby ${lobbyId}: ${JSON.stringify(answers)}`);
+        continue;
+      }
+      // JSONB için güvenli ve sanitize edilmiş veri
+      const safeAnswers = answers.map(a => ({
+        question: a.question.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, ''),
+        options: a.options.map(opt => opt.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, '')),
+        correctAnswer: a.correctAnswer.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, ''),
+        userAnswer: a.userAnswer ? a.userAnswer.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, '') : null,
+        isCorrect: a.isCorrect
+      }));
+      const totalQuestions = answers.length;
+      const correctAnswers = answers.filter(a => a.isCorrect).length;
+      const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+      logger.info(`Saving quiz history for ${player}: user_id=${userId}, topic=${lobby.topic}, total=${totalQuestions}, correct=${correctAnswers}, score=${score}, answers=${JSON.stringify(safeAnswers, null, 2)}`);
+      // JSONB için stringified JSON
+      const jsonAnswers = JSON.stringify(safeAnswers);
+      await pool.query(
+        `INSERT INTO quiz_history (user_id, topic, total_questions, correct_answers, score, questions)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [userId, lobby.topic, totalQuestions, correctAnswers, score, jsonAnswers]
+      );
+      logger.info(`Quiz history saved for user ${player} in lobby ${lobbyId}`);
+    } catch (error) {
+      logger.error(`Error saving quiz history for user ${player} in lobby ${lobbyId}: ${error.message}`, { stack: error.stack, answers: JSON.stringify(lobby.playerAnswers[player], null, 2) });
+    }
   }
-  // En yüksek skora sahip tüm oyuncuları listele
-  const winners = Object.keys(lobby.scores).filter(player => lobby.scores[player] === maxScore);
+
   io.to(lobbyId).emit('game_over', { winners, scores: lobby.scores });
+  delete lobbies[lobbyId];
 }
 // Middleware
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(passport.initialize()); // Passport'u başlatın
+app.use(passport.initialize()); // Passport'u başlat
 
 // Oturum kontrolü
 function isAuthenticated(req, res, next) {
@@ -231,7 +295,7 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
-    console.log('JWT_SECRET used for token creation:', JWT_SECRET); // Bu logu ekleyin
+    console.log('JWT_SECRET used for token creation:', JWT_SECRET);
     const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ message: 'Login successful', token });
   } catch (err) {
@@ -239,7 +303,6 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -259,9 +322,8 @@ app.post('/register', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ message: 'Logout successful' });
-  });
+  // JWT ile logout istemci tarafında token'ı silerek yapılır
+  res.json({ message: 'Logout successful' });
 });
 
 app.get('/lobbies', (req, res) => {
@@ -269,7 +331,7 @@ app.get('/lobbies', (req, res) => {
 });
 
 app.post('/create_lobby', isAuthenticated, (req, res) => {
-  const username = req.user.username; // Passport doğrulamasından gelen kullanıcı bilgisi
+  const username = req.user.username;
   const { topic, questionCount } = req.body;
   if (!username || !topic || !questionCount) {
     return res.status(400).json({ message: 'Username, topic, and question count are required' });
@@ -285,7 +347,8 @@ app.post('/create_lobby', isAuthenticated, (req, res) => {
     scores: { [username]: 0 },
     topic,
     questionCount: count,
-    status: 'waiting'
+    status: 'waiting',
+    playerAnswers: { [username]: [] } // playerAnswers’ı başlat
   };
   logger.info(`New lobby created: ${lobbyId} by ${username} with ${count} questions`);
   res.json({ lobbyId, username });
@@ -314,6 +377,10 @@ io.on('connection', (socket) => {
       }
       lobby.players[username] = { ready: false };
       lobby.scores[username] = 0;
+      if (!lobby.playerAnswers) {
+        lobby.playerAnswers = {}; // playerAnswers yoksa başlat
+      }
+      lobby.playerAnswers[username] = []; // Yeni oyuncu için cevap dizisi
       socket.join(lobbyId);
       io.to(lobbyId).emit('lobby_update', lobby);
     });
@@ -349,12 +416,13 @@ io.on('connection', (socket) => {
     if (lobbies[lobbyId] && username in lobbies[lobbyId].players) {
       delete lobbies[lobbyId].players[username];
       delete lobbies[lobbyId].scores[username];
+      delete lobbies[lobbyId].playerAnswers[username];
       socket.leave(lobbyId);
       if (!Object.keys(lobbies[lobbyId].players).length) {
         delete lobbies[lobbyId];
       } else if (lobbies[lobbyId].status === 'playing' && Object.keys(lobbies[lobbyId].players).length === 1) {
         io.to(lobbyId).emit('game_over', {
-          winner: Object.keys(lobbies[lobbyId].players)[0],
+          winners: [Object.keys(lobbies[lobbyId].players)[0]],
           scores: lobbies[lobbyId].scores
         });
       }
