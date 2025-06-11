@@ -8,6 +8,7 @@ import Lobby from './components/Lobby';
 import Game from './components/Game';
 import Index from './components/Index';
 import PrivateRoute from './PrivateRoute';
+import QuizHistory from './components/QuizHistory';
 import './styles/tailwind.css';
 
 function App() {
@@ -23,6 +24,8 @@ function App() {
         <Route path="/lobby/:lobbyId" element={<PrivateRoute><Lobby username={username} /></PrivateRoute>} />
         <Route path="/game/:lobbyId" element={<PrivateRoute><Game username={username} /></PrivateRoute>} />
         <Route path="/Index" element={<PrivateRoute><Index username={username} /></PrivateRoute>} />
+        <Route path="/quiz-history" element={<PrivateRoute><QuizHistory username={username} /></PrivateRoute>} />
+        {/* Redirect to login if no route matches */}
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
