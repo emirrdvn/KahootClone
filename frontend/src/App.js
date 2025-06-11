@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
 import MainScreen from './components/MainScreen';
@@ -12,7 +12,23 @@ import QuizHistory from './components/QuizHistory';
 import './styles/tailwind.css';
 
 function App() {
-  const [username, setUsername] = useState(localStorage.getItem('username') || '');
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    // Token'dan username'i decode et
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUsername(payload.username);
+        localStorage.setItem('username', payload.username);
+      } catch (error) {
+        console.error('Token decode error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+      }
+    }
+  }, []);
 
   return (
     <BrowserRouter>
@@ -25,7 +41,6 @@ function App() {
         <Route path="/game/:lobbyId" element={<PrivateRoute><Game username={username} /></PrivateRoute>} />
         <Route path="/Index" element={<PrivateRoute><Index username={username} /></PrivateRoute>} />
         <Route path="/quiz-history" element={<PrivateRoute><QuizHistory username={username} /></PrivateRoute>} />
-        {/* Redirect to login if no route matches */}
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

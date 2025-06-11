@@ -16,7 +16,8 @@ function Login({ setUsername }) {
     try {
       const response = await api.post('/login', formData);
       const { token } = response.data;
-      localStorage.setItem('token', token); // Store the token
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', formData.username); // Bu satırı ekleyin
       setUsername(formData.username);
       navigate('/mainscreen');
     } catch (err) {

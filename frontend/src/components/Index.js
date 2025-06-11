@@ -30,6 +30,7 @@ function Index({ username }) {
     try {
       await api.get('/logout');
       localStorage.removeItem('username');
+      localStorage.removeItem('token'); // Token'ı da temizleyin
       navigate('/login');
     } catch (err) {
       setError('Çıkış yapma başarısız');
