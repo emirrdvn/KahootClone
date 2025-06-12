@@ -402,6 +402,45 @@ app.post('/create_lobby', isAuthenticated, (req, res) => {
   res.json({ lobbyId, username });
 });
 
+// Quiz geçmişi: Kullanıcıya ait quiz geçmişini getir
+app.get('/quiz-history', isAuthenticated, async (req, res) => {
+  try {
+    logger.info(`Fetching quiz history for user: ${req.user.username}`);
+
+    // Kullanıcının id'sini bul
+    const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [req.user.username]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userId = userResult.rows[0].id;
+
+    // Quiz geçmişini çek
+    const historyResult = await pool.query(
+      `SELECT id, topic, date, total_questions, correct_answers, score, questions
+       FROM quiz_history
+       WHERE user_id = $1
+       ORDER BY date DESC`,
+      [userId]
+    );
+
+    // questions alanı string ise parse et
+    const history = historyResult.rows.map(row => ({
+      id: row.id,
+      topic: row.topic,
+      date: row.date, // ISO string olarak gelir
+      totalQuestions: row.total_questions,
+      correctAnswers: row.correct_answers,
+      score: row.score,
+      questions: typeof row.questions === 'string' ? JSON.parse(row.questions) : row.questions
+    }));
+
+    res.json({ history });
+  } catch (err) {
+    logger.error('Error fetching quiz history:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Socket.IO olayları
 io.on('connection', (socket) => {
   logger.info(`New client connected: ${socket.id}`);
