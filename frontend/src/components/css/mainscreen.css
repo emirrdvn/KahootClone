@@ -1,0 +1,134 @@
+.mainscreen-bg {
+    min-height: 100vh;
+    min-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.mainscreen-container {
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+    border-radius: 18px;
+    padding: 38px 28px 28px 28px;
+    max-width: 340px;
+    width: 90vw;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    backdrop-filter: blur(6px);
+    border: 1.5px solid rgba(255,255,255,0.25);
+}
+
+.mainscreen-logo {
+    font-family: 'Montserrat', 'Arial Black', Arial, sans-serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #000, 0 2px 8px #0008;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.mainscreen-title {
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.mainscreen-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.mainscreen-btn {
+    width: 100%;
+    padding: 12px 0;
+    border-radius: 7px;
+    border: none;
+    font-size: 1.08rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.mainscreen-btn.join {
+    background: #2c9b46;
+    color: #fff;
+}
+.mainscreen-btn.join:hover {
+    background: #218838;
+    transform: translateY(-2px) scale(1.03);
+}
+
+.mainscreen-btn.create {
+    background: #0078d4;
+    color: #fff;
+}
+.mainscreen-btn.create:hover {
+    background: #005fa3;
+    transform: translateY(-2px) scale(1.03);
+}
+
+.mainscreen-footer {
+    width: 100%;
+    background: rgba(0,0,0,0.22);
+    color: #eee;
+    text-align: center;
+    padding: 10px 0 8px 0;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 10;
+    min-height: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.logout-icon-btn {
+    background: transparent;
+    border: none;
+    color: #ff5959;
+    font-size: 1.75rem;
+    margin: 12px auto 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.18s, transform 0.15s;
+    box-shadow: none;
+}
+.logout-icon-btn:hover {
+    color: #d32f2f;
+    transform: scale(1.12);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .mainscreen-container {
+        padding: 22px 6vw 18px 6vw;
+        max-width: 98vw;
+    }
+    .mainscreen-logo {
+        font-size: 1.4rem;
+    }
+}
