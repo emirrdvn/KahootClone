@@ -66,7 +66,7 @@ function MainScreen({ username }) {
             <i className="fas fa-play-circle"></i> Oyuna Katıl
           </button>
           <button
-            onClick={() => navigate('/index')}
+            onClick={() => navigate('/create-lobby')}
             className="mainscreen-btn create"
           >
             <i className="fas fa-plus-circle"></i> Oyun Oluştur

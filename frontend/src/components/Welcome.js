@@ -67,7 +67,7 @@ function Welcome() { // <-- Büyük harfle başlat
 
       <main>
         <div className="main-action-buttons">
-          <a href="/index" className="no-underline">
+          <a href="/lobbies" className="no-underline">
             <button className="action-button join-game">
               <div className="icon-container">
                 <i className="fas fa-play-circle"></i>
@@ -75,7 +75,7 @@ function Welcome() { // <-- Büyük harfle başlat
               <span>Join a Game</span>
             </button>
           </a>
-          <a href="/lobbies" className="no-underline">
+          <a href="/create-lobby" className="no-underline">
             <button className="action-button create-game">
               <div className="icon-container">
                 <i className="fas fa-plus-circle"></i>

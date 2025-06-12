@@ -42,7 +42,7 @@ function App() {
         <Route path="/lobbies" element={<PrivateRoute><Lobbies username={username} /></PrivateRoute>} />
         <Route path="/lobby/:lobbyId" element={<PrivateRoute><Lobby username={username} /></PrivateRoute>} />
         <Route path="/game/:lobbyId" element={<PrivateRoute><Game username={username} /></PrivateRoute>} />
-        <Route path="/Index" element={<PrivateRoute><Index username={username} /></PrivateRoute>} />
+        <Route path="/create-lobby" element={<PrivateRoute><Index username={username} /></PrivateRoute>} />
         <Route path="/quiz-history" element={<PrivateRoute><QuizHistory username={username} /></PrivateRoute>} />
         <Route path="/" element={<Navigate to="/welcome" />} />
       </Routes>
