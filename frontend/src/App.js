@@ -9,6 +9,8 @@ import Game from './components/Game';
 import Index from './components/Index';
 import PrivateRoute from './PrivateRoute';
 import QuizHistory from './components/QuizHistory';
+import Welcome from './components/Welcome';
+
 import './styles/tailwind.css';
 
 function App() {
@@ -33,6 +35,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login setUsername={setUsername} />} />
         <Route path="/register" element={<Register setUsername={setUsername} />} />
         <Route path="/mainscreen" element={<PrivateRoute><MainScreen username={username} /></PrivateRoute>} />
