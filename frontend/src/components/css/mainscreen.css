@@ -88,6 +88,29 @@
     transform: translateY(-2px) scale(1.03);
 }
 
+.mainscreen-btn.history {
+    background: #9b59b6;
+    color: #fff;
+    width: 100%;
+    padding: 12px 0;
+    border-radius: 7px;
+    border: none;
+    font-size: 1.08rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.mainscreen-btn.history:hover {
+    background: #8e44ad;
+    transform: translateY(-2px) scale(1.03);
+}
+
 .mainscreen-footer {
     width: 100%;
     background: rgba(0,0,0,0.22);
