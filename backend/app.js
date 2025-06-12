@@ -242,7 +242,7 @@ async function endGame(lobbyId) {
       const totalQuestions = answers.length;
       const correctAnswers = answers.filter(a => a.isCorrect).length;
       const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-      logger.info(`Saving quiz history for ${player}: user_id=${userId}, topic=${lobby.topic}, total=${totalQuestions}, correct=${correctAnswers}, score=${score}, answers=${JSON.stringify(safeAnswers, null, 2)}`);
+      // logger.info(`Saving quiz history for ${player}: user_id=${userId}, topic=${lobby.topic}, total=${totalQuestions}, correct=${correctAnswers}, score=${score}, answers=${JSON.stringify(safeAnswers, null, 2)}`);
       // JSONB için stringified JSON
       const jsonAnswers = JSON.stringify(safeAnswers);
       await pool.query(
