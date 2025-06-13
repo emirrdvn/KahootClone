@@ -1,136 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../axiosConfig';
 
 function QuizHistory({ username }) {
   const navigate = useNavigate();
-  
-  // Static quiz history data - replace this with API call later
-  const [quizHistory] = useState([
-    {
-      id: 1,
-      topic: 'Spor',
-      date: '2024-01-15',
-      totalQuestions: 5,
-      correctAnswers: 3,
-      score: 60,
-      questions: [
-        {
-          question: 'Futbol maçı normal sürede kaç dakika oynanır?',
-          options: ['90', '80', '100', '120'],
-          correctAnswer: '90',
-          userAnswer: '90',
-          isCorrect: true
-        },
-        {
-          question: 'Basketbol takımında kaç oyuncu bulunur?',
-          options: ['5', '6', '7', '8'],
-          correctAnswer: '5',
-          userAnswer: '6',
-          isCorrect: false
-        },
-        {
-          question: 'Olimpiyat oyunları kaç yılda bir düzenlenir?',
-          options: ['2', '3', '4', '5'],
-          correctAnswer: '4',
-          userAnswer: '4',
-          isCorrect: true
-        },
-        {
-          question: 'Tenis kortunda kaç set oynanır?',
-          options: ['2', '3', '5', '1'],
-          correctAnswer: '3',
-          userAnswer: '2',
-          isCorrect: false
-        },
-        {
-          question: 'Dünya Kupası kaç yılda bir düzenlenir?',
-          options: ['2', '3', '4', '5'],
-          correctAnswer: '4',
-          userAnswer: '4',
-          isCorrect: true
-        }
-      ]
-    },
-    {
-      id: 2,
-      topic: 'Tarih',
-      date: '2024-01-12',
-      totalQuestions: 3,
-      correctAnswers: 2,
-      score: 67,
-      questions: [
-        {
-          question: 'Osmanlı İmparatorluğu ne zaman kuruldu?',
-          options: ['1299', '1453', '1071', '1923'],
-          correctAnswer: '1299',
-          userAnswer: '1299',
-          isCorrect: true
-        },
-        {
-          question: 'Türkiye Cumhuriyeti ne zaman kuruldu?',
-          options: ['1920', '1921', '1922', '1923'],
-          correctAnswer: '1923',
-          userAnswer: '1922',
-          isCorrect: false
-        },
-        {
-          question: 'İstanbul hangi yıl fethedildi?',
-          options: ['1451', '1452', '1453', '1454'],
-          correctAnswer: '1453',
-          userAnswer: '1453',
-          isCorrect: true
-        }
-      ]
-    },
-    {
-      id: 3,
-      topic: 'Bilim',
-      date: '2024-01-10',
-      totalQuestions: 4,
-      correctAnswers: 4,
-      score: 100,
-      questions: [
-        {
-          question: 'Hangi gezegen "Kızıl Gezegen" olarak bilinir?',
-          options: ['Mars', 'Jüpiter', 'Venüs', 'Merkür'],
-          correctAnswer: 'Mars',
-          userAnswer: 'Mars',
-          isCorrect: true
-        },
-        {
-          question: 'Su hangi sıcaklıkta donar?',
-          options: ['0°C', '1°C', '-1°C', '2°C'],
-          correctAnswer: '0°C',
-          userAnswer: '0°C',
-          isCorrect: true
-        },
-        {
-          question: 'Atomun merkezinde ne bulunur?',
-          options: ['Elektron', 'Nötron', 'Çekirdek', 'Proton'],
-          correctAnswer: 'Çekirdek',
-          userAnswer: 'Çekirdek',
-          isCorrect: true
-        },
-        {
-          question: 'DNA\'nın açılımı nedir?',
-          options: ['Deoksiribonükleik asit', 'Dikarbonükleik asit', 'Deokleonik asit', 'Deksiribonükleik asit'],
-          correctAnswer: 'Deoksiribonükleik asit',
-          userAnswer: 'Deoksiribonükleik asit',
-          isCorrect: true
-        }
-      ]
-    }
-  ]);
-
+  const [quizHistory, setQuizHistory] = useState([]);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleViewDetails = (quiz) => {
-    setSelectedQuiz(quiz);
-  };
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await api.get('/quiz-history');
+        setQuizHistory(res.data.history);
+      } catch (err) {
+        setError('Quiz geçmişi alınamadı.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistory();
+  }, []);
 
-  const handleBackToList = () => {
-    setSelectedQuiz(null);
-  };
+  const handleViewDetails = (quiz) => setSelectedQuiz(quiz);
+  const handleBackToList = () => setSelectedQuiz(null);
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-green-600';
@@ -143,9 +37,14 @@ function QuizHistory({ username }) {
     return date.toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
+
+  if (loading) return <div className="text-center mt-10">Yükleniyor...</div>;
+  if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
 
   if (selectedQuiz) {
     return (
@@ -162,7 +61,6 @@ function QuizHistory({ username }) {
               <h1 className="text-2xl font-bold">Quiz Detayları</h1>
               <div></div>
             </div>
-
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <h2 className="text-xl font-semibold mb-2">{selectedQuiz.topic}</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -186,7 +84,6 @@ function QuizHistory({ username }) {
                 </div>
               </div>
             </div>
-
             <div className="space-y-4">
               <h3 className="text-lg font-semibold mb-4">Sorular ve Cevaplar</h3>
               {selectedQuiz.questions.map((q, index) => (
@@ -210,7 +107,6 @@ function QuizHistory({ username }) {
                       {q.isCorrect ? 'Doğru' : 'Yanlış'}
                     </span>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {q.options.map((option, optionIndex) => (
                       <div
@@ -233,13 +129,12 @@ function QuizHistory({ username }) {
                       </div>
                     ))}
                   </div>
-
                   <div className="text-sm text-gray-600">
                     <p>
                       <span className="font-medium">Doğru Cevap:</span> {q.correctAnswer}
                     </p>
                     <p>
-                      <span className="font-medium">Senin Cevabın:</span> {q.userAnswer}
+                      <span className="font-medium">Senin Cevabın:</span> {q.userAnswer || <span className="italic text-gray-400">Cevap yok</span>}
                     </p>
                   </div>
                 </div>
@@ -264,17 +159,15 @@ function QuizHistory({ username }) {
               Ana Sayfa
             </button>
           </div>
-
           <div className="mb-6">
             <p className="text-gray-600">Hoş geldiniz, <span className="font-semibold">{username}</span>!</p>
             <p className="text-sm text-gray-500">Geçmiş quiz sonuçlarınızı görüntüleyebilirsiniz.</p>
           </div>
-
           {quizHistory.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500 text-lg">Henüz quiz geçmişiniz bulunmuyor.</p>
               <button
-                onClick={() => navigate('/index')}
+                onClick={() => navigate('/create-lobby')}
                 className="mt-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
               >
                 İlk Quiz'inizi Oluşturun
@@ -301,7 +194,6 @@ function QuizHistory({ username }) {
                       </p>
                     </div>
                   </div>
-
                   <div className="flex justify-between items-center">
                     <div className="flex space-x-4 text-sm text-gray-600">
                       <span>📋 {quiz.totalQuestions} soru</span>
@@ -315,7 +207,6 @@ function QuizHistory({ username }) {
                       Detayları Gör
                     </button>
                   </div>
-
                   {/* Progress bar */}
                   <div className="mt-3">
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -335,7 +226,6 @@ function QuizHistory({ username }) {
               ))}
             </div>
           )}
-
           <div className="mt-8 text-center">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
               <div className="bg-gray-50 p-3 rounded">

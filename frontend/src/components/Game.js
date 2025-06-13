@@ -57,12 +57,12 @@ function Game({ username }) {
       if (timerRef.current) clearInterval(timerRef.current);
       setGameData(prev => ({ ...prev, timer: 0 }));
     });
-    socket.on('game_over', ({ winner, scores }) => {
-      console.log('game_over alındı:', { winner, scores });
+    socket.on('game_over', ({ winners, scores }) => {
+      console.log('game_over alındı:', { winners, scores });
       // Timer'ı durdur
       if (timerRef.current) clearInterval(timerRef.current);
       setGameData(prev => ({ ...prev, timer: 0 }));
-      alert(`Oyun bitti! Kazanan: ${winner || 'Yok'}`);
+      alert(`Oyun bitti! Kazananlar: ${winners.length > 0 ? winners.join(', ') : 'Yok'}`);
       socket.emit('leave_lobby', { lobbyId, username });
       navigate('/mainscreen');
     });

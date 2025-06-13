@@ -42,7 +42,7 @@ function Welcome() { // <-- Büyük harfle başlat
 
       bgRef.current.style.background = `linear-gradient(120deg, rgb(${r1},${g1},${b1}), rgb(${r2},${g2},${b2}))`;
 
-      step += 0.008;
+      step += 0.001;
       if (step >= 1) {
         step = 0;
         colorIndices[0] = colorIndices[1];
@@ -67,7 +67,7 @@ function Welcome() { // <-- Büyük harfle başlat
 
       <main>
         <div className="main-action-buttons">
-          <a href="/index" className="no-underline">
+          <a href="/lobbies" className="no-underline">
             <button className="action-button join-game">
               <div className="icon-container">
                 <i className="fas fa-play-circle"></i>
@@ -75,7 +75,7 @@ function Welcome() { // <-- Büyük harfle başlat
               <span>Join a Lobby</span>
             </button>
           </a>
-          <a href="/lobbies" className="no-underline">
+          <a href="/create-lobby" className="no-underline">
             <button className="action-button create-game">
               <div className="icon-container">
                 <i className="fas fa-plus-circle"></i>

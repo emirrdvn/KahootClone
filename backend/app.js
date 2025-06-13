@@ -51,14 +51,65 @@ const BREAK_DURATION = 5;
 
 async function generateQuestions(topic, questionCount) {
   logger.info(`Generating ${questionCount} questions for topic: ${topic} using Gemini API`);
+  
+  // Topic'e göre rastgele kriter listeleri
+  const criteriaByTopic = {
+    'Genel Kültür': [
+      'popüler kültürden ilginç gerçekler',
+      'müzik ve sanat odaklı sorular',
+      'edebiyat ve atasözleri üzerine',
+      'güncel olaylardan kolay sorular'
+    ],
+    'Tarih': [
+      '20. yüzyıl siyasi olayları',
+      'kişi odaklı zor sorular',
+      'kültürel ve bilimsel gelişmeler',
+      'savaş ve devrimler üzerine',
+      'antik çağdan orta çağa'
+    ],
+    'Bilim': [
+      'fizik ve teknoloji yenilikleri',
+      'biyoloji ve tıp keşifleri',
+      'astronomi ve uzay araştırmaları',
+      'çevre bilimi odaklı'
+    ],
+    'Coğrafya': [
+      'ülkeler ve başkentler',
+      'doğal oluşumlar ve nehirler',
+      'kıtalar ve kültürel coğrafya',
+      'iklim ve coğrafi özellikler'
+    ],
+    'Spor': [
+      'futbol kuralları ve tarihçesi',
+      'olimpiyatlar ve rekorlar',
+      'ünlü sporcular ve başarıları',
+      'basketbol ve tenis odaklı'
+    ],
+    'Filmler ve Diziler': [
+      'popüler filmler ve yönetmenler',
+      'dizi evrenleri ve karakterler',
+      'sinema tarihi ve ödüller',
+      'kült klasikler üzerine'
+    ]
+  };
+
+  // Topic için kriter listesi yoksa varsayılan
+  const criteria = criteriaByTopic[topic] || ['konuyla ilgili çeşitli sorular'];
+  // Rastgele kriter seç
+  const randomCriterion = criteria[Math.floor(Math.random() * criteria.length)];
+
   try {
     const prompt = `
-      ${topic} konusunda ${questionCount} adet quiz sorusu üret. Her soru için:
-      - Soruyu (question),
-      - 4 adet şık (options, dizi olarak, karışık sıralı),
-      - Doğru cevabı (correctAnswer, şıklardan biriyle aynı olmalı)
-      JSON formatında döndür. Şıklar ve doğru cevap metin veya sayı olabilir.
-      Sorular Türkçe, net ve ${topic} konusuna uygun olsun. Tüm metinler UTF-8 uyumlu olmalı, özel karakterler (ş, ı, ğ, ü, ç, ö) doğru kullanılmalı.
+      ${topic} konusunda ${questionCount} adet quiz sorusu üret. Şu kriterlere uy:
+      - **Kriter**: ${randomCriterion}.
+      - Sorular özgün, daha önce üretilmiş sorularla benzerlik göstermesin.
+      - Her soru için:
+        - Soruyu (question),
+        - 4 adet şık (options, dizi olarak, karışık sıralı),
+        - Doğru cevabı (correctAnswer, şıklardan biriyle aynı olmalı).
+      - JSON formatında döndür. Şıklar ve doğru cevap metin veya sayı olabilir.
+      - Sorular Türkçe, net ve ${topic} konusuna uygun olsun.
+      - Tüm metinler UTF-8 uyumlu olmalı, özel karakterler (ş, ı, ğ, ü, ç, ö) doğru kullanılmalı.
       
       Topic rehberi:
       - Genel Kültür: Gündelik bilgiler, popüler kültür, müzik, sanatçı, film, edebiyat, atasözleri.
@@ -83,7 +134,6 @@ async function generateQuestions(topic, questionCount) {
     logger.info(`Raw Gemini response: ${responseText}`);
     const cleanedText = Buffer.from(responseText.replace(/```json\n|\n```/g, '').trim(), 'utf8').toString('utf8');
     logger.info(`Cleaned Gemini response: ${cleanedText}`);
-    // Kapsamlı karakter düzeltme
     const normalizedText = cleanedText
       .replace(/├▒/g, 'ı')
       .replace(/┼ş/g, 'ş')
@@ -99,14 +149,12 @@ async function generateQuestions(topic, questionCount) {
       .replace(/─ç/g, 'ç')
       .replace(/─ö/g, 'ö');
     logger.info(`Normalized Gemini response: ${normalizedText}`);
-    // JSON geçerliliğini kontrol et
     try {
       const questions = JSON.parse(normalizedText);
       if (!Array.isArray(questions) || questions.length < questionCount) {
         logger.error(`Gemini API insufficient questions for topic: ${topic}, requested: ${questionCount}, received: ${questions.length}`);
         return [];
       }
-      // Soruları sanitize et
       const sanitizedQuestions = questions.map(q => ({
         question: q.question.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, ''),
         options: q.options.map(opt => opt.replace(/[^\x20-\x7EşğıüçöŞİĞÜÇÖ]/g, '')),
@@ -242,7 +290,7 @@ async function endGame(lobbyId) {
       const totalQuestions = answers.length;
       const correctAnswers = answers.filter(a => a.isCorrect).length;
       const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-      logger.info(`Saving quiz history for ${player}: user_id=${userId}, topic=${lobby.topic}, total=${totalQuestions}, correct=${correctAnswers}, score=${score}, answers=${JSON.stringify(safeAnswers, null, 2)}`);
+      // logger.info(`Saving quiz history for ${player}: user_id=${userId}, topic=${lobby.topic}, total=${totalQuestions}, correct=${correctAnswers}, score=${score}, answers=${JSON.stringify(safeAnswers, null, 2)}`);
       // JSONB için stringified JSON
       const jsonAnswers = JSON.stringify(safeAnswers);
       await pool.query(
@@ -352,6 +400,45 @@ app.post('/create_lobby', isAuthenticated, (req, res) => {
   };
   logger.info(`New lobby created: ${lobbyId} by ${username} with ${count} questions`);
   res.json({ lobbyId, username });
+});
+
+// Quiz geçmişi: Kullanıcıya ait quiz geçmişini getir
+app.get('/quiz-history', isAuthenticated, async (req, res) => {
+  try {
+    logger.info(`Fetching quiz history for user: ${req.user.username}`);
+
+    // Kullanıcının id'sini bul
+    const userResult = await pool.query('SELECT id FROM users WHERE username = $1', [req.user.username]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userId = userResult.rows[0].id;
+
+    // Quiz geçmişini çek
+    const historyResult = await pool.query(
+      `SELECT id, topic, date, total_questions, correct_answers, score, questions
+       FROM quiz_history
+       WHERE user_id = $1
+       ORDER BY date DESC`,
+      [userId]
+    );
+
+    // questions alanı string ise parse et
+    const history = historyResult.rows.map(row => ({
+      id: row.id,
+      topic: row.topic,
+      date: row.date, // ISO string olarak gelir
+      totalQuestions: row.total_questions,
+      correctAnswers: row.correct_answers,
+      score: row.score,
+      questions: typeof row.questions === 'string' ? JSON.parse(row.questions) : row.questions
+    }));
+
+    res.json({ history });
+  } catch (err) {
+    logger.error('Error fetching quiz history:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 // Socket.IO olayları
