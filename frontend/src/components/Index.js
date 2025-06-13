@@ -2,8 +2,10 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../axiosConfig';
 import './css/index.css';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 
 function Index({ username }) {
+  const clickAudioRef = useRef(null);
   const [formData, setFormData] = useState({ username, topic: 'Spor', questionCount: 5 });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -54,12 +56,27 @@ function Index({ username }) {
   }, 
   []);
 
+  const playClickSound = () => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {}
+    }
+  };
+
+  const playAndNavigate = (path) => {
+    playClickSound();
+    setTimeout(() => navigate(path), 150);
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    playClickSound();
     try {
       const response = await api.post('/create_lobby', formData);
       navigate(`/lobby/${response.data.lobbyId}`);
@@ -81,6 +98,7 @@ function Index({ username }) {
 
   return (
     <div ref={bgRef} className="index-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot ! </a>
@@ -91,11 +109,7 @@ function Index({ username }) {
         <div className="index-create-icon">
           <i className="fas fa-users-cog"></i>
         </div>
-        <div className="index-header">
-
-        </div>
-
-
+        <div className="index-header"></div>
         {error && <div className="index-error">{error}</div>}
         <form className="index-form" onSubmit={handleSubmit}>
           <input
@@ -109,7 +123,7 @@ function Index({ username }) {
           <select
             name="topic"
             value={formData.topic}
-            onChange={handleChange}
+            onChange={e => setFormData({ ...formData, topic: e.target.value })}
             className="index-input"
           >
             <option value="Spor">Spor</option>
@@ -123,29 +137,29 @@ function Index({ username }) {
             type="number"
             name="questionCount"
             value={formData.questionCount}
-            onChange={handleChange}
+            onChange={e => setFormData({ ...formData, questionCount: e.target.value })}
             min="1"
             max="10"
             className="index-input"
             placeholder="Soru Sayısı (1-10)"
           />
-          <button type="submit" className="index-btn create">
+          <button type="submit" className="index-btn create" onClick={playClickSound}>
             <i className="fas fa-plus-circle"></i> Lobi Oluştur
           </button>
         </form>
         <button
-          onClick={() => navigate('/lobbies')}
+          onClick={() => playAndNavigate('/lobbies')}
           className="index-btn browse"
         >
           <i className="fas fa-search"></i> Mevcut Lobilere Göz At
         </button>
         <button
-        className="lobby-leave-btn-bottom"
-        title="Ana Sayfa"
-        onClick={() => navigate('/mainscreen')}
+          className="lobby-leave-btn-bottom"
+          title="Ana Sayfa"
+          onClick={() => playAndNavigate('/mainscreen')}
         >
-        <i className="fas fa-home"></i>
-      </button>
+          <i className="fas fa-home"></i>
+        </button>
       </div>
       <footer className="index-footer">
         Kahoot! &copy; {new Date().getFullYear()}

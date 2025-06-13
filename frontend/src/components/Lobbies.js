@@ -1,12 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../axiosConfig';
 import './css/lobbies.css';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 
 function Lobbies({ username }) {
   const [lobbies, setLobbies] = useState({});
   const navigate = useNavigate();
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
 
   // Renkli arka plan animasyonu
   useEffect(() => {
@@ -70,12 +72,23 @@ function Lobbies({ username }) {
     fetchLobbies();
   }, []);
 
+  const playAndNavigate = (path) => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {}
+    }
+    setTimeout(() => navigate(path), 150);
+  };
+
   const handleJoin = (lobbyId) => {
     navigate(`/lobby/${lobbyId}`);
   };
 
   return (
     <div ref={bgRef} className="lobbies-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot ! </a>
@@ -117,7 +130,7 @@ function Lobbies({ username }) {
           </ul>
         )}
         <button
-          onClick={() => navigate('/mainscreen')}
+          onClick={() => playAndNavigate('/mainscreen')}
           className="lobbies-main-btn"
           title="Ana Sayfa"
         >

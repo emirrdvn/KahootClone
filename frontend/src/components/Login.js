@@ -2,9 +2,11 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../axiosConfig';
 import './css/login.css';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 
 function Login({ setUsername }) {
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,6 +56,17 @@ function Login({ setUsername }) {
     return () => {};
   }, []);
 
+  const playClickSound = () => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {
+        // Hata olursa sessizce geç
+      }
+    }
+  };
+
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError('');
@@ -61,6 +74,7 @@ function Login({ setUsername }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    playClickSound();
     if (!form.username || !form.password) {
       setError('Kullanıcı adı ve şifre gerekli.');
       return;
@@ -82,8 +96,8 @@ function Login({ setUsername }) {
 
   return (
     <div ref={bgRef} className="login-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       <div className="login-container">
-
         <form className="login-form" onSubmit={handleSubmit}>
           <div style={{ textAlign: 'center', marginBottom: 4 }}>
             <i className="fas fa-sign-in-alt" style={{ fontSize: '5rem', color: '#2c9b46' }}></i>
@@ -112,19 +126,33 @@ function Login({ setUsername }) {
               {error}
             </div>
           )}
-          <button type="submit" className="login-btn" disabled={loading}>
+          <button
+            type="submit"
+            className="login-btn"
+            disabled={loading}
+            onClick={playClickSound}
+          >
             {loading ? 'Yükleniyor...' : 'Giriş Yap'}
           </button>
           <div className="login-links">
-            <a href="/register">Hesabın yok mu? Kayıt ol</a>
+            <a
+              href="#"
+              onClick={e => {
+                e.preventDefault();
+                playClickSound();
+                setTimeout(() => navigate('/register'), 150);
+              }}
+            >
+              Hesabın yok mu? Kayıt ol
+            </a>
           </div>
           <button
             className="logout-icon-btn"
             title="Çıkış Yap"
+            type="button"
             onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('username');
-              navigate('/welcome');
+              playClickSound();
+              setTimeout(() => navigate('/'), 150);
             }}
           >
             <i className="fas fa-sign-out-alt"></i>

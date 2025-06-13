@@ -1,9 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 import './css/mainscreen.css';
 
 function MainScreen({ username }) {
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
   const navigate = useNavigate();
 
   // Dinamik arka plan animasyonu (aynı)
@@ -50,8 +52,19 @@ function MainScreen({ username }) {
     return () => {};
   }, []);
 
+  const playAndNavigate = (path) => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {}
+    }
+    setTimeout(() => navigate(path), 150);
+  };
+
   return (
     <div ref={bgRef} className="mainscreen-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot !  </a>
@@ -66,19 +79,19 @@ function MainScreen({ username }) {
         </div>
         <div className="mainscreen-actions">
           <button
-            onClick={() => navigate('/lobbies')}
+            onClick={() => playAndNavigate('/lobbies')}
             className="mainscreen-btn join"
           >
             <i className="fas fa-play-circle"></i> Oyuna Katıl
           </button>
           <button
-            onClick={() => navigate('/create-lobby')}
+            onClick={() => playAndNavigate('/create-lobby')}
             className="mainscreen-btn create"
           >
             <i className="fas fa-plus-circle"></i> Oyun Oluştur
           </button>
           <button
-            onClick={() => navigate('/quiz-history')}
+            onClick={() => playAndNavigate('/quiz-history')}
             className="mainscreen-btn history"
           >
             <i className="fas fa-history"></i> Quiz Geçmişi
@@ -87,9 +100,13 @@ function MainScreen({ username }) {
             className="logout-icon-btn"
             title="Çıkış Yap"
             onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('username');
-              navigate('/welcome');
+              if (clickAudioRef.current) {
+                try {
+                  clickAudioRef.current.currentTime = 0;
+                  clickAudioRef.current.play();
+                } catch (e) {}
+              }
+              setTimeout(() => navigate('/'), 150);
             }}
           >
             <i className="fas fa-sign-out-alt"></i>

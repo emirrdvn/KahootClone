@@ -1,13 +1,15 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 import './css/lobby.css';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 
 function Lobby({ username }) {
   const { lobbyId } = useParams();
   const navigate = useNavigate();
   const [lobby, setLobby] = useState(null);
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
 
   // Dinamik renkli arka plan animasyonu
   useEffect(() => {
@@ -92,11 +94,22 @@ function Lobby({ username }) {
     navigate('/lobbies');
   };
 
+  const playAndNavigate = (path) => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {}
+    }
+    setTimeout(() => navigate(path), 150);
+  };
+
   if (!lobby) return <div className="lobby-loading">Yükleniyor...</div>;
 
   return (
     <div ref={bgRef} className="lobby-bg">
-        <header className="main-header">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
+      <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot !  </a>
           <h2 className="mainscreen-title">Bekleme Odası</h2>
@@ -130,7 +143,15 @@ function Lobby({ username }) {
           ))}
         </ul>
         <button
-          onClick={handleReady}
+          onClick={() => {
+            if (clickAudioRef.current) {
+              try {
+                clickAudioRef.current.currentTime = 0;
+                clickAudioRef.current.play();
+              } catch (e) {}
+            }
+            handleReady();
+          }}
           className={`lobby-btn ready-btn${lobby.players[username]?.ready ? ' disabled' : ''}`}
           disabled={lobby.players[username]?.ready}
         >
@@ -138,10 +159,10 @@ function Lobby({ username }) {
         </button>
         <button
           className="lobby-leave-btn-bottom"
-          title="Lobiden Ayrıl"
-          onClick={handleLeave}
+          title="Ana Sayfa"
+          onClick={() => playAndNavigate('/mainscreen')}
         >
-          <i className="fas fa-sign-out-alt"></i> 
+          <i className="fas fa-home"></i>
         </button>
       </div>
       <footer className="mainscreen-footer">

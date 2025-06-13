@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
+import mouseClickSound from '../sounds/mouse-click.mp3';
 import './css/game.css';
 
 function Game({ username }) {
@@ -19,6 +20,7 @@ function Game({ username }) {
   const [winnerList, setWinnerList] = useState([]);
   const timerRef = useRef(null);
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
 
   // Renkli arka plan animasyonu
   useEffect(() => {
@@ -145,8 +147,23 @@ function Game({ username }) {
   // Süreyi saniye.milisaniye olarak göster
   const timerDisplay = (gameData.timer / 1000).toFixed(1);
 
+  const playClickSound = () => {
+    if (clickAudioRef.current) {
+      try {
+        clickAudioRef.current.currentTime = 0;
+        clickAudioRef.current.play();
+      } catch (e) {}
+    }
+  };
+
+  const playAndNavigate = (path) => {
+    playClickSound();
+    setTimeout(() => navigate(path), 150);
+  };
+
   return (
     <div ref={bgRef} className="game-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       {showWinner ? (
         <div className="game-winner-modal">
           <div className="game-winner-content">
@@ -158,7 +175,10 @@ function Game({ username }) {
                 : <div className="game-winner-name">Yok</div>
               }
             </div>
-            <button className="game-winner-btn" onClick={() => navigate('/mainscreen')}>
+            <button
+              className="game-winner-btn"
+              onClick={() => playAndNavigate('/mainscreen')}
+            >
               <i className="fas fa-home"></i> Ana Sayfa
             </button>
           </div>
@@ -177,7 +197,10 @@ function Game({ username }) {
                 gameData.options.map((option, index) => (
                   <button
                     key={index}
-                    onClick={() => handleGuess(option)}
+                    onClick={() => {
+                      playClickSound();
+                      handleGuess(option);
+                    }}
                     className={`game-option-btn${selected === option ? ' selected' : ''}${result ? (
                       result.correctAnswer === option
                         ? ' correct'
@@ -229,7 +252,12 @@ function Game({ username }) {
               ))}
             </ul>
             <button
-              onClick={handleLeave}
+              onClick={() => {
+                if (window.confirm("Oyundan çıkmak istediğinize emin misiniz?")) {
+                  playClickSound();
+                  handleLeave();
+                }
+              }}
               className="game-leave-btn"
               title="Oyundan çık"
             >

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import './css/welcome.css';
+import mouseClickSound from '../sounds/mouse-click.mp3';
+import { useNavigate } from 'react-router-dom';
 
 function Footer() {
   return (
@@ -11,6 +13,8 @@ function Footer() {
 
 function Welcome() { // <-- Büyük harfle başlat
   const bgRef = useRef(null);
+  const clickAudioRef = useRef(null);
+  const navigate = useNavigate();
 
   // Dinamik arka plan renkleri için
   useEffect(() => {
@@ -57,8 +61,19 @@ function Welcome() { // <-- Büyük harfle başlat
     return () => {};
   }, []);
 
+  // Ses oynatma ve yönlendirme fonksiyonu
+  const playAndNavigate = (path) => {
+    if (clickAudioRef.current) {
+      clickAudioRef.current.pause();
+      clickAudioRef.current.currentTime = 0;
+      clickAudioRef.current.play();
+    }
+    setTimeout(() => navigate(path), 150); // 150ms sonra yönlendir
+  };
+
   return (
     <div ref={bgRef} className="kahoot-bg">
+      <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
       <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot ! ' a Hoşgeldiniz</a>
@@ -67,23 +82,34 @@ function Welcome() { // <-- Büyük harfle başlat
 
       <main>
         <div className="main-action-buttons">
-          <a href="/login" className="no-underline">
-            <button className="action-button join-game">
-              <div className="icon-container">
-                <i className="fas fa-sign-in-alt"></i>
-              </div>
-              <span>Login</span>
-            </button> 
-          </a>
-          <a href="/register" className="no-underline">
-            <button className="action-button create-game">
-              <div className="icon-container">
-                <i className="fas fa-user-plus"></i>
-              </div>
-              <span>Register</span>
-            </button>
-          </a>
+          <button
+            className="action-button join-game"
+            type="button"
+            onClick={() => playAndNavigate('/login')}
+          >
+            <div className="icon-container">
+              <i className="fas fa-sign-in-alt"></i>
+            </div>
+            <span>Login</span>
+          </button>
+          <button
+            className="action-button create-game"
+            type="button"
+            onClick={() => playAndNavigate('/register')}
+          >
+            <div className="icon-container">
+              <i className="fas fa-user-plus"></i>
+            </div>
+            <span>Register</span>
+          </button>
         </div>
+        <button onClick={() => {
+          if (clickAudioRef.current) {
+            clickAudioRef.current.pause();
+            clickAudioRef.current.currentTime = 0;
+            clickAudioRef.current.play();
+          }
+        }}></button>
       </main>
       <Footer />
     </div>
