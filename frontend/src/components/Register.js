@@ -7,6 +7,7 @@ function Register({ setUsername }) {
   const bgRef = useRef(null);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Dinamik arka plan animasyonu
@@ -60,6 +61,7 @@ function Register({ setUsername }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const response = await api.post('/register', formData);
       const { token } = response.data;
@@ -68,6 +70,8 @@ function Register({ setUsername }) {
       navigate('/mainscreen');
     } catch (err) {
       setError(err.response?.data?.message || 'Kayıt başarısız');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,8 +101,15 @@ function Register({ setUsername }) {
             onChange={handleChange}
             autoComplete="new-password"
           />
-          {error && <div className="register-error">{error}</div>}
-          <button type="submit" className="register-btn">Kayıt Ol</button>
+          {(error || loading) && (
+            <div className="register-error">
+              {loading && <span className="register-spinner"></span>}
+              {error}
+            </div>
+          )}
+          <button type="submit" className="register-btn" disabled={loading}>
+            {loading ? 'Yükleniyor...' : 'Kayıt Ol'}
+          </button>
           <div className="register-links">
             <a href="/login">Zaten hesabın var mı? Giriş Yap</a>
           </div>

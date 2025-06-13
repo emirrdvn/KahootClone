@@ -132,6 +132,22 @@
     backdrop-filter: blur(2px);
 }
 
+.register-spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #0078d4;
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: register-spin 1s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+@keyframes register-spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
 /* Responsive */
 @media (max-width: 500px) {
     .register-container {
