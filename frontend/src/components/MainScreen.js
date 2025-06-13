@@ -52,12 +52,19 @@ function MainScreen({ username }) {
 
   return (
     <div ref={bgRef} className="mainscreen-bg">
-      <div className="mainscreen-container">
-        <div className="mainscreen-logo">Kahoot!</div>
-        <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <i className="fas fa-user-circle" style={{ fontSize: '2.2rem', color: '#2c9b46' }}></i>
+      <header className="main-header">
+        <div className="logo">
+          <a href="/" className="logo-text">Kahoot !  </a>
+          <h2 className="mainscreen-title">Hoş Geldin, {username} !</h2>
         </div>
-        <h2 className="mainscreen-title">Hoş geldiniz, {username}!</h2>
+      </header>
+
+      <div className="mainscreen-container">
+       
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <i className="fas fa-user-circle" style={{ fontSize: '6rem', color: '#2c9b46' }}></i>
+        </div>
+        <h2 className="mainscreen-title">Hoş Geldin, {username} !</h2>
         <div className="mainscreen-actions">
           <button
             onClick={() => navigate('/lobbies')}
@@ -70,6 +77,12 @@ function MainScreen({ username }) {
             className="mainscreen-btn create"
           >
             <i className="fas fa-plus-circle"></i> Oyun Oluştur
+          </button>
+          <button
+            onClick={() => navigate('/quizhistory')}
+            className="mainscreen-btn history"
+          >
+            <i className="fas fa-history"></i> Oyun Geçmişi
           </button>
           <button
             className="logout-icon-btn"

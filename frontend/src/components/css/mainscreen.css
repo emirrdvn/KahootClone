@@ -34,7 +34,7 @@
     letter-spacing: 2px;
     text-shadow: 2px 2px 0 #000, 0 2px 8px #0008;
     margin-bottom: 18px;
-    text-align: center;
+    text-align: left;
 }
 
 .mainscreen-title {
@@ -73,6 +73,7 @@
 .mainscreen-btn.join {
     background: #2c9b46;
     color: #fff;
+
 }
 .mainscreen-btn.join:hover {
     background: #218838;
@@ -85,6 +86,15 @@
 }
 .mainscreen-btn.create:hover {
     background: #005fa3;
+    transform: translateY(-2px) scale(1.03);
+}
+
+.mainscreen-btn.history {
+    background: #ffb300;
+    color: #fff;
+}
+.mainscreen-btn.history:hover {
+    background: #ff9800;
     transform: translateY(-2px) scale(1.03);
 }
 

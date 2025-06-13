@@ -61,7 +61,7 @@ function Welcome() { // <-- Büyük harfle başlat
     <div ref={bgRef} className="kahoot-bg">
       <header className="main-header">
         <div className="logo">
-          <a href="/" className="logo-text">Welcome to Kahoot !</a>
+          <a href="/" className="logo-text">Kahoot ! ' a Hoşgeldiniz</a>
         </div>
       </header>
 
@@ -72,7 +72,7 @@ function Welcome() { // <-- Büyük harfle başlat
               <div className="icon-container">
                 <i className="fas fa-play-circle"></i>
               </div>
-              <span>Join a Game</span>
+              <span>Join a Lobby</span>
             </button>
           </a>
           <a href="/lobbies" className="no-underline">
@@ -80,7 +80,7 @@ function Welcome() { // <-- Büyük harfle başlat
               <div className="icon-container">
                 <i className="fas fa-plus-circle"></i>
               </div>
-              <span>Create a Game</span>
+              <span>Create a Lobby</span>
             </button>
           </a>
           <a href="/login" className="no-underline">

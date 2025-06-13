@@ -74,10 +74,10 @@ function Register({ setUsername }) {
   return (
     <div ref={bgRef} className="register-bg">
       <div className="register-container">
-        <div className="register-logo">Kahoot!</div>
+
         <form className="register-form" onSubmit={handleSubmit}>
           <div style={{ textAlign: 'center', marginBottom: 4 }}>
-            <i className="fas fa-user-plus" style={{ fontSize: '2rem', color: '#0078d4' }}></i>
+            <i className="fas fa-user-plus" style={{ fontSize: '5rem', color: '#0078d4' }}></i>
           </div>
           <h2>Hesap Oluştur</h2>
           <input
@@ -102,6 +102,17 @@ function Register({ setUsername }) {
           <div className="register-links">
             <a href="/login">Zaten hesabın var mı? Giriş Yap</a>
           </div>
+          <button
+            className="logout-icon-btn"
+            title="Çıkış Yap"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('username');
+              navigate('/welcome');
+            }}
+          >
+            <i className="fas fa-sign-out-alt"></i>
+          </button>
         </form>
       </div>
       <footer className="register-footer">

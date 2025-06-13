@@ -79,10 +79,10 @@ function Login({ setUsername }) {
   return (
     <div ref={bgRef} className="login-bg">
       <div className="login-container">
-        <div className="login-logo">Kahoot!</div>
+
         <form className="login-form" onSubmit={handleSubmit}>
           <div style={{ textAlign: 'center', marginBottom: 4 }}>
-            <i className="fas fa-sign-in-alt" style={{ fontSize: '2rem', color: '#2c9b46' }}></i>
+            <i className="fas fa-sign-in-alt" style={{ fontSize: '5rem', color: '#2c9b46' }}></i>
           </div>
           <h2>Giriş Yap</h2>
           <input
@@ -107,6 +107,17 @@ function Login({ setUsername }) {
           <div className="login-links">
             <a href="/register">Hesabın yok mu? Kayıt ol</a>
           </div>
+          <button
+            className="logout-icon-btn"
+            title="Çıkış Yap"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('username');
+              navigate('/welcome');
+            }}
+          >
+            <i className="fas fa-sign-out-alt"></i>
+          </button>
         </form>
       </div>
       <footer className="login-footer">
