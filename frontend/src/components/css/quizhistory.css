@@ -194,10 +194,21 @@
     height: 8px;
     border-radius: 8px;
     transition: width 0.3s;
+    background: #2c9b46; /* Varsayılan yeşil */
 }
-.score-green { background: #2c9b46; }
-.score-yellow { background: #ffd600; }
-.score-red { background: #ff5959; }
+
+/* Progress bar için dinamik renkler */
+.qh-progress-fill[data-score="high"] {
+    background: linear-gradient(90deg, #2c9b46, #4caf50);
+}
+
+.qh-progress-fill[data-score="medium"] {
+    background: linear-gradient(90deg, #ffd600, #ffeb3b);
+}
+
+.qh-progress-fill[data-score="low"] {
+    background: linear-gradient(90deg, #ff5959, #f44336);
+}
 
 .qh-empty {
     color: #fff;
