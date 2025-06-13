@@ -7,6 +7,7 @@ function Login({ setUsername }) {
   const bgRef = useRef(null);
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Dinamik arka plan animasyonu
@@ -64,6 +65,7 @@ function Login({ setUsername }) {
       setError('Kullanıcı adı ve şifre gerekli.');
       return;
     }
+    setLoading(true);
     try {
       const response = await api.post('/login', form);
       const { token } = response.data;
@@ -73,6 +75,8 @@ function Login({ setUsername }) {
       navigate('/mainscreen');
     } catch (err) {
       setError(err.response?.data?.message || 'Giriş başarısız');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,8 +106,15 @@ function Login({ setUsername }) {
             onChange={handleChange}
             autoComplete="current-password"
           />
-          {error && <div className="login-error">{error}</div>}
-          <button type="submit" className="login-btn">Giriş Yap</button>
+          {(error || loading) && (
+            <div className="login-error">
+              {loading && <span className="login-spinner"></span>}
+              {error}
+            </div>
+          )}
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? 'Yükleniyor...' : 'Giriş Yap'}
+          </button>
           <div className="login-links">
             <a href="/register">Hesabın yok mu? Kayıt ol</a>
           </div>

@@ -67,24 +67,8 @@ function Welcome() { // <-- Büyük harfle başlat
 
       <main>
         <div className="main-action-buttons">
-          <a href="/lobbies" className="no-underline">
-            <button className="action-button join-game">
-              <div className="icon-container">
-                <i className="fas fa-play-circle"></i>
-              </div>
-              <span>Join a Lobby</span>
-            </button>
-          </a>
-          <a href="/create-lobby" className="no-underline">
-            <button className="action-button create-game">
-              <div className="icon-container">
-                <i className="fas fa-plus-circle"></i>
-              </div>
-              <span>Create a Lobby</span>
-            </button>
-          </a>
           <a href="/login" className="no-underline">
-            <button className="action-button login">
+            <button className="action-button join-game">
               <div className="icon-container">
                 <i className="fas fa-sign-in-alt"></i>
               </div>
@@ -92,7 +76,7 @@ function Welcome() { // <-- Büyük harfle başlat
             </button> 
           </a>
           <a href="/register" className="no-underline">
-            <button className="action-button register">
+            <button className="action-button create-game">
               <div className="icon-container">
                 <i className="fas fa-user-plus"></i>
               </div>

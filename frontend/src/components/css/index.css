@@ -43,7 +43,7 @@
     text-shadow: 2px 2px 0 #000, 0 2px 8px #0008;
 }
 
-.index-logout-btn {
+.lobby-leave-btn-bottom{
     background: transparent;
     border: none;
     color: #ff5959;
@@ -158,6 +158,17 @@
     z-index: 10;
     min-height: 20px;
     backdrop-filter: blur(2px);
+}
+
+.index-create-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 18px;
+}
+.index-create-icon i {
+    font-size: 4.5rem;
+    color: #0078d4;
 }
 
 /* Responsive */

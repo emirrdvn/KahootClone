@@ -64,7 +64,6 @@ function MainScreen({ username }) {
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
           <i className="fas fa-user-circle" style={{ fontSize: '6rem', color: '#2c9b46' }}></i>
         </div>
-        <h2 className="mainscreen-title">Hoş Geldin, {username} !</h2>
         <div className="mainscreen-actions">
           <button
             onClick={() => navigate('/lobbies')}

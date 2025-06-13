@@ -132,6 +132,23 @@
     backdrop-filter: blur(2px);
 }
 
+.login-spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #2c9b46;
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: login-spin 1s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+@keyframes login-spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
 /* Responsive */
 @media (max-width: 500px) {
     .login-container {

@@ -1,74 +1,118 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
+import './css/game.css';
 
 function Game({ username }) {
   const { lobbyId } = useParams();
   const navigate = useNavigate();
   const [gameData, setGameData] = useState({
-    question: 'Soru buraya gelecek...',
+    question: 'Soru Yükleniyor...',
     options: [],
-    timer: 'Bekleniyor...',
+    timer: 0,
     players: [],
     scores: {}
   });
   const [result, setResult] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [showWinner, setShowWinner] = useState(false);
+  const [winnerList, setWinnerList] = useState([]);
   const timerRef = useRef(null);
+  const bgRef = useRef(null);
+
+  // Renkli arka plan animasyonu
+  useEffect(() => {
+    let step = 0;
+    const colors = [
+      [255, 0, 85],
+      [0, 184, 255],
+      [255, 221, 51],
+      [0, 217, 126],
+      [255, 94, 0],
+      [170, 0, 255],
+    ];
+    let colorIndices = [0, 1, 2, 3];
+    let animationFrameId;
+
+    function updateGradient() {
+      if (!bgRef.current) {
+        animationFrameId = requestAnimationFrame(updateGradient);
+        return;
+      }
+      let c0_0 = colors[colorIndices[0]];
+      let c0_1 = colors[colorIndices[1]];
+      let c1_0 = colors[colorIndices[2]];
+      let c1_1 = colors[colorIndices[3]];
+
+      let istep = 1 - step;
+      let r1 = Math.round(istep * c0_0[0] + step * c0_1[0]);
+      let g1 = Math.round(istep * c0_0[1] + step * c0_1[1]);
+      let b1 = Math.round(istep * c0_0[2] + step * c0_1[2]);
+      let r2 = Math.round(istep * c1_0[0] + step * c1_1[0]);
+      let g2 = Math.round(istep * c1_0[1] + step * c1_1[1]);
+      let b2 = Math.round(istep * c1_0[2] + step * c1_1[2]);
+
+      bgRef.current.style.background = `linear-gradient(120deg, rgb(${r1},${g1},${b1}), rgb(${r2},${g2},${b2}))`;
+
+      step += 0.008;
+      if (step >= 1) {
+        step = 0;
+        colorIndices[0] = colorIndices[1];
+        colorIndices[2] = colorIndices[3];
+        colorIndices[1] = (colorIndices[1] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+        colorIndices[3] = (colorIndices[3] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+      }
+      animationFrameId = requestAnimationFrame(updateGradient);
+    }
+    animationFrameId = requestAnimationFrame(updateGradient);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
 
   useEffect(() => {
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
-      const token = localStorage.getItem('token'); // Token'ı al
-      socket.emit('join_lobby', { token, lobbyId, username }); // Token'ı da gönder
+      const token = localStorage.getItem('token');
+      socket.emit('join_lobby', { token, lobbyId, username });
     });
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-    });
-    socket.on('lobby_update', (lobby) => {
-      console.log('lobby_update alındı:', lobby);
-    });
+    socket.on('disconnect', () => {});
+    socket.on('lobby_update', (lobby) => {});
     socket.on('new_round', (data) => {
-      console.log('new_round alındı:', JSON.stringify(data, null, 2));
       setGameData({
         question: data.question || 'Soru yüklenemedi',
         options: data.options || [],
-        timer: data.timer || 15,
+        timer: (data.timer || 15) * 1000,
         players: data.players || [],
         scores: data.scores || {}
       });
       setResult(null);
-      // Timer'ı başlat
+      setSelected(null);
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setGameData(prev => {
-          const newTimer = prev.timer - 1;
+          const newTimer = prev.timer - 100;
           if (newTimer <= 0) {
             clearInterval(timerRef.current);
             return { ...prev, timer: 0 };
           }
           return { ...prev, timer: newTimer };
         });
-      }, 1000);
+      }, 100);
     });
     socket.on('round_result', (data) => {
-      console.log('round_result alındı:', data);
       setResult(data);
-      // Timer'ı durdur
       if (timerRef.current) clearInterval(timerRef.current);
       setGameData(prev => ({ ...prev, timer: 0 }));
     });
     socket.on('game_over', ({ winners, scores }) => {
-      console.log('game_over alındı:', { winners, scores });
-      // Timer'ı durdur
       if (timerRef.current) clearInterval(timerRef.current);
       setGameData(prev => ({ ...prev, timer: 0 }));
-      alert(`Oyun bitti! Kazananlar: ${winners.length > 0 ? winners.join(', ') : 'Yok'}`);
+      setWinnerList(winners);
+      setShowWinner(true);
       socket.emit('leave_lobby', { lobbyId, username });
-      navigate('/mainscreen');
+      // navigate('/mainscreen'); // Otomatik yönlendirme kaldırıldı, kullanıcıya bırakıldı
     });
     socket.on('error', ({ message }) => {
-      console.log('error alındı:', message);
-      // Timer'ı durdur
       if (timerRef.current) clearInterval(timerRef.current);
       alert(message);
       setTimeout(() => navigate('/lobbies'), 500);
@@ -81,72 +125,119 @@ function Game({ username }) {
       socket.off('round_result');
       socket.off('game_over');
       socket.off('error');
-      // Cleanup timer
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [lobbyId, username, navigate]);
 
-  useEffect(() => {
-    console.log('gameData güncellendi:', gameData);
-  }, [gameData]);
-
   const handleGuess = (guess) => {
-    console.log('Gönderilen guess:', guess);
+    setSelected(guess);
     socket.emit('submit_guess', { lobbyId, username, guess });
   };
 
   const handleLeave = () => {
-    console.log('Lobiden çıkılıyor:', lobbyId, username);
     socket.emit('leave_lobby', { lobbyId, username });
     navigate('/lobbies');
   };
 
+  // Bar için max skor
+  const maxScore = Math.max(1, ...Object.values(gameData.scores));
+
+  // Süreyi saniye.milisaniye olarak göster
+  const timerDisplay = (gameData.timer / 1000).toFixed(1);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Oyun - {lobbyId}</h2>
-        <p className="text-lg mb-4">{gameData.question}</p>
-        <div className="mb-4">
-          {gameData.options && gameData.options.length > 0 ? (
-            gameData.options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleGuess(option)}
-                className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mb-2"
-                disabled={gameData.timer === 0}
-              >
-                {option}
-              </button>
-            ))
-          ) : (
-            <p>Şıklar yükleniyor...</p>
-          )}
-        </div>
-        <p className="mb-4">Kalan Süre: {gameData.timer} saniye</p>
-        <h3 className="text-md font-semibold mb-2">Oyuncular ve Skorlar:</h3>
-        <ul className="mb-4">
-          {gameData.players.map(player => (
-            <li key={player}>
-              {player}: {gameData.scores[player] || 0}
-            </li>
-          ))}
-        </ul>
-        {result && (
-          <div className="mb-4">
-            <p>Doğru Cevap: {result.correctAnswer}</p>
-            <p>
-              Kazananlar:{' '}
-              {result.winners && result.winners.length > 0 ? result.winners.join(', ') : 'Yok'}
-            </p>
+    <div ref={bgRef} className="game-bg">
+      {showWinner ? (
+        <div className="game-winner-modal">
+          <div className="game-winner-content">
+            <div className="game-winner-icon"><i className="fas fa-trophy"></i></div>
+            <h2>Kazanan{winnerList.length > 1 ? 'lar' : ''}!</h2>
+            <div className="game-winner-list">
+              {winnerList.length > 0
+                ? winnerList.map((w, i) => <div key={i} className="game-winner-name">{w}</div>)
+                : <div className="game-winner-name">Yok</div>
+              }
+            </div>
+            <button className="game-winner-btn" onClick={() => navigate('/mainscreen')}>
+              <i className="fas fa-home"></i> Ana Sayfa
+            </button>
           </div>
-        )}
-        <button
-          onClick={handleLeave}
-          className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600"
-        >
-          Terk Et
-        </button>
-      </div>
+        </div>
+      ) : (
+        <div className="game-panels">
+          <div className="game-container">
+            <div className="game-question-area">
+              <div className="game-question-icon">
+                <i className="fas fa-question-circle"></i>
+              </div>
+              <div className="game-question">{gameData.question}</div>
+            </div>
+            <div className="game-options">
+              {gameData.options && gameData.options.length > 0 ? (
+                gameData.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleGuess(option)}
+                    className={`game-option-btn${selected === option ? ' selected' : ''}${result ? (
+                      result.correctAnswer === option
+                        ? ' correct'
+                        : selected === option
+                          ? ' wrong'
+                          : ''
+                    ) : ''}`}
+                    disabled={gameData.timer === 0 || !!result}
+                  >
+                    {option}
+                  </button>
+                ))
+              ) : (
+                <p className="game-loading">Şıklar yükleniyor...</p>
+              )}
+            </div>
+            {result && (
+              <div className="game-result">
+                <div>
+                  <b>Doğru Cevap:</b> <span className="game-correct">{result.correctAnswer}</span>
+                </div>
+                <div>
+                  <b>Kazananlar:</b> {result.winners && result.winners.length > 0 ? result.winners.join(', ') : 'Yok'}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="game-sidepanel">
+            <div className={`game-timer${gameData.timer <= 5000 ? ' danger' : ''}`}>
+              <i className="fas fa-clock"></i> <span>Kalan Süre:</span> <b>{timerDisplay}</b>
+            </div>
+            <div className="game-players-title">
+              <i className="fas fa-users"></i> Oyuncular & Skorlar
+            </div>
+            <ul className="game-players-list">
+              {gameData.players.map(player => (
+                <li key={player}>
+                  <span className="game-player-name">{player}</span>
+                  <div className="game-score-bar-wrap">
+                    <div
+                      className="game-score-bar"
+                      style={{
+                        width: `${(gameData.scores[player] || 0) / maxScore * 100}%`
+                      }}
+                    ></div>
+                    <span className="game-score">{gameData.scores[player] || 0}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleLeave}
+              className="game-leave-btn"
+              title="Oyundan çık"
+            >
+              <i className="fas fa-sign-out-alt"></i>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -51,7 +51,8 @@ function Index({ username }) {
     }
     updateGradient();
     return () => {};
-  }, []);
+  }, 
+  []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -83,9 +84,13 @@ function Index({ username }) {
       <header className="main-header">
         <div className="logo">
           <a href="/" className="logo-text">Kahoot ! </a>
+          <h2 className="mainscreen-title">Lobi Oluşturma Ekranı</h2>
         </div>
       </header>
       <div className="index-container">
+        <div className="index-create-icon">
+          <i className="fas fa-users-cog"></i>
+        </div>
         <div className="index-header">
 
         </div>
@@ -134,17 +139,13 @@ function Index({ username }) {
         >
           <i className="fas fa-search"></i> Mevcut Lobilere Göz At
         </button>
-         <button
-            className="logout-icon-btn"
-            title="Çıkış Yap"
-            onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('username');
-              navigate('/welcome');
-            }}
-          >
-            <i className="fas fa-sign-out-alt"></i>
-          </button>
+        <button
+        className="lobby-leave-btn-bottom"
+        title="Ana Sayfa"
+        onClick={() => navigate('/mainscreen')}
+        >
+        <i className="fas fa-home"></i>
+      </button>
       </div>
       <footer className="index-footer">
         Kahoot! &copy; {new Date().getFullYear()}

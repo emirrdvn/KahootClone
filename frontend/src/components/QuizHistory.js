@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../axiosConfig';
+import './css/quizhistory.css';
 
 function QuizHistory({ username }) {
   const navigate = useNavigate();
@@ -8,6 +9,57 @@ function QuizHistory({ username }) {
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const bgRef = useRef(null);
+
+  // Renkli arka plan animasyonu
+  useEffect(() => {
+    let step = 0;
+    const colors = [
+      [255, 0, 85],
+      [0, 184, 255],
+      [255, 221, 51],
+      [0, 217, 126],
+      [255, 94, 0],
+      [170, 0, 255],
+    ];
+    let colorIndices = [0, 1, 2, 3];
+    let animationFrameId;
+
+    function updateGradient() {
+      if (!bgRef.current) {
+        animationFrameId = requestAnimationFrame(updateGradient);
+        return;
+      }
+      let c0_0 = colors[colorIndices[0]];
+      let c0_1 = colors[colorIndices[1]];
+      let c1_0 = colors[colorIndices[2]];
+      let c1_1 = colors[colorIndices[3]];
+
+      let istep = 1 - step;
+      let r1 = Math.round(istep * c0_0[0] + step * c0_1[0]);
+      let g1 = Math.round(istep * c0_0[1] + step * c0_1[1]);
+      let b1 = Math.round(istep * c0_0[2] + step * c0_1[2]);
+      let r2 = Math.round(istep * c1_0[0] + step * c1_1[0]);
+      let g2 = Math.round(istep * c1_0[1] + step * c1_1[1]);
+      let b2 = Math.round(istep * c1_0[2] + step * c1_1[2]);
+
+      bgRef.current.style.background = `linear-gradient(120deg, rgb(${r1},${g1},${b1}), rgb(${r2},${g2},${b2}))`;
+
+      step += 0.008;
+      if (step >= 1) {
+        step = 0;
+        colorIndices[0] = colorIndices[1];
+        colorIndices[2] = colorIndices[3];
+        colorIndices[1] = (colorIndices[1] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+        colorIndices[3] = (colorIndices[3] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+      }
+      animationFrameId = requestAnimationFrame(updateGradient);
+    }
+    animationFrameId = requestAnimationFrame(updateGradient);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchHistory() {
@@ -27,9 +79,9 @@ function QuizHistory({ username }) {
   const handleBackToList = () => setSelectedQuiz(null);
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'score-green';
+    if (score >= 60) return 'score-yellow';
+    return 'score-red';
   };
 
   const formatDate = (dateString) => {
@@ -43,103 +95,87 @@ function QuizHistory({ username }) {
     });
   };
 
-  if (loading) return <div className="text-center mt-10">Yükleniyor...</div>;
-  if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
+  // İstatistikler
+  const totalQuiz = quizHistory.length;
+  const avgScore = totalQuiz > 0 ? Math.round(quizHistory.reduce((sum, quiz) => sum + quiz.score, 0) / totalQuiz) : 0;
+  const maxScore = totalQuiz > 0 ? Math.max(...quizHistory.map(q => q.score)) : 0;
+
+  if (loading) return (
+    <div className="qh-center-text">
+      <span className="qh-spinner"></span>
+      Yükleniyor...
+    </div>
+  );
+  if (error) return <div className="qh-center-text qh-error">{error}</div>;
 
   if (selectedQuiz) {
     return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <button
-                onClick={handleBackToList}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                ← Geri Dön
-              </button>
-              <h1 className="text-2xl font-bold">Quiz Detayları</h1>
-              <div></div>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <h2 className="text-xl font-semibold mb-2">{selectedQuiz.topic}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Tarih:</span>
-                  <p>{formatDate(selectedQuiz.date)}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Toplam Soru:</span>
-                  <p>{selectedQuiz.totalQuestions}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Doğru Cevap:</span>
-                  <p>{selectedQuiz.correctAnswers}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Skor:</span>
-                  <p className={`font-bold ${getScoreColor(selectedQuiz.score)}`}>
-                    %{selectedQuiz.score}
-                  </p>
-                </div>
+      <div ref={bgRef} className="qh-bg">
+        <div className="qh-container">
+          <div className="qh-header">
+            <button onClick={handleBackToList} className="qh-btn qh-btn-gray">
+              <i className="fas fa-arrow-left"></i> Geri Dön
+            </button>
+            <h1 className="qh-title">Quiz Detayları</h1>
+            <div></div>
+          </div>
+          <div className="qh-quiz-summary">
+            <div className="qh-topic">{selectedQuiz.topic}</div>
+            <div className="qh-summary-row">
+              <div>
+                <span className="qh-label">Tarih:</span>
+                <span>{formatDate(selectedQuiz.date)}</span>
+              </div>
+              <div>
+                <span className="qh-label">Toplam Soru:</span>
+                <span>{selectedQuiz.totalQuestions}</span>
+              </div>
+              <div>
+                <span className="qh-label">Doğru Cevap:</span>
+                <span>{selectedQuiz.correctAnswers}</span>
+              </div>
+              <div>
+                <span className="qh-label">Skor:</span>
+                <span className={`qh-score ${getScoreColor(selectedQuiz.score)}`}>%{selectedQuiz.score}</span>
               </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold mb-4">Sorular ve Cevaplar</h3>
-              {selectedQuiz.questions.map((q, index) => (
-                <div
-                  key={index}
-                  className={`border rounded-lg p-4 ${
-                    q.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-medium text-gray-800">
-                      {index + 1}. {q.question}
-                    </h4>
-                    <span
-                      className={`px-2 py-1 rounded text-sm font-medium ${
-                        q.isCorrect
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {q.isCorrect ? 'Doğru' : 'Yanlış'}
-                    </span>
+          </div>
+          <div className="qh-questions">
+            <h3 className="qh-section-title">Sorular ve Cevaplar</h3>
+            {selectedQuiz.questions.map((q, index) => (
+              <div
+                key={index}
+                className={`qh-question-card ${q.isCorrect ? 'qh-correct' : 'qh-wrong'}`}
+              >
+                <div className="qh-question-row">
+                  <div className="qh-question-text">
+                    {index + 1}. {q.question}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {q.options.map((option, optionIndex) => (
-                      <div
-                        key={optionIndex}
-                        className={`p-2 rounded text-sm ${
-                          option === q.correctAnswer
-                            ? 'bg-green-100 border-2 border-green-300 text-green-800'
-                            : option === q.userAnswer && !q.isCorrect
-                            ? 'bg-red-100 border-2 border-red-300 text-red-800'
-                            : 'bg-gray-100 border border-gray-300'
-                        }`}
-                      >
-                        {option}
-                        {option === q.correctAnswer && (
-                          <span className="ml-1 text-green-600">✓</span>
-                        )}
-                        {option === q.userAnswer && !q.isCorrect && (
-                          <span className="ml-1 text-red-600">✗</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <p>
-                      <span className="font-medium">Doğru Cevap:</span> {q.correctAnswer}
-                    </p>
-                    <p>
-                      <span className="font-medium">Senin Cevabın:</span> {q.userAnswer || <span className="italic text-gray-400">Cevap yok</span>}
-                    </p>
-                  </div>
+                  <span className={`qh-answer-badge ${q.isCorrect ? 'qh-correct' : 'qh-wrong'}`}>
+                    {q.isCorrect ? 'Doğru' : 'Yanlış'}
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div className="qh-options-row">
+                  {q.options.map((option, optionIndex) => (
+                    <div
+                      key={optionIndex}
+                      className={`qh-option
+                        ${option === q.correctAnswer ? 'qh-option-correct' : ''}
+                        ${option === q.userAnswer && !q.isCorrect ? 'qh-option-wrong' : ''}
+                      `}
+                    >
+                      {option}
+                      {option === q.correctAnswer && <span className="qh-correct-icon">✓</span>}
+                      {option === q.userAnswer && !q.isCorrect && <span className="qh-wrong-icon">✗</span>}
+                    </div>
+                  ))}
+                </div>
+                <div className="qh-answer-row">
+                  <span className="qh-label">Doğru Cevap:</span> {q.correctAnswer}
+                  <span className="qh-label" style={{marginLeft: 16}}>Senin Cevabın:</span> {q.userAnswer || <span className="qh-muted">Cevap yok</span>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -147,110 +183,87 @@ function QuizHistory({ username }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Quiz Geçmişi</h1>
-            <button
-              onClick={() => navigate('/mainscreen')}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              Ana Sayfa
-            </button>
+    <div ref={bgRef} className="qh-bg">
+      <header className="main-header">
+        <div className="logo">
+          <a href="/" className="logo-text">Kahoot !   </a>
+          
+        </div>
+      </header>
+      <div className="qh-container">
+        <div className="qh-header">
+          <h1 className="qh-title"><i className="fas fa-history"></i> Quiz Geçmişi</h1>
+          <button onClick={() => navigate('/mainscreen')} className="qh-btn qh-btn-gray">
+            <i className="fas fa-home"></i>
+          </button>
+        </div>
+        <div className="qh-welcome">
+        </div>
+        <div className="qh-stats-panel">
+          <div className="qh-stat">
+            <div className="qh-stat-label"><i className="fas fa-list-ol"></i> Toplam Quiz</div>
+            <div className="qh-stat-value">{totalQuiz}</div>
           </div>
-          <div className="mb-6">
-            <p className="text-gray-600">Hoş geldiniz, <span className="font-semibold">{username}</span>!</p>
-            <p className="text-sm text-gray-500">Geçmiş quiz sonuçlarınızı görüntüleyebilirsiniz.</p>
+          <div className="qh-stat">
+            <div className="qh-stat-label"><i className="fas fa-star"></i> Ortalama Skor</div>
+            <div className="qh-stat-value">%{avgScore}</div>
           </div>
-          {quizHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 text-lg">Henüz quiz geçmişiniz bulunmuyor.</p>
-              <button
-                onClick={() => navigate('/create-lobby')}
-                className="mt-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
-              >
-                İlk Quiz'inizi Oluşturun
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {quizHistory.map((quiz) => (
-                <div
-                  key={quiz.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{quiz.topic}</h3>
-                      <p className="text-sm text-gray-500">{formatDate(quiz.date)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-2xl font-bold ${getScoreColor(quiz.score)}`}>
-                        %{quiz.score}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {quiz.correctAnswers}/{quiz.totalQuestions} doğru
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex space-x-4 text-sm text-gray-600">
-                      <span>📋 {quiz.totalQuestions} soru</span>
-                      <span>✅ {quiz.correctAnswers} doğru</span>
-                      <span>❌ {quiz.totalQuestions - quiz.correctAnswers} yanlış</span>
-                    </div>
-                    <button
-                      onClick={() => handleViewDetails(quiz)}
-                      className="bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600"
-                    >
-                      Detayları Gör
-                    </button>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          quiz.score >= 80
-                            ? 'bg-green-500'
-                            : quiz.score >= 60
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
-                        }`}
-                        style={{ width: `${quiz.score}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-8 text-center">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-              <div className="bg-gray-50 p-3 rounded">
-                <p className="font-semibold">Toplam Quiz</p>
-                <p className="text-lg font-bold text-gray-800">{quizHistory.length}</p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <p className="font-semibold">Ortalama Skor</p>
-                <p className="text-lg font-bold text-gray-800">
-                  %{quizHistory.length > 0 
-                    ? Math.round(quizHistory.reduce((sum, quiz) => sum + quiz.score, 0) / quizHistory.length)
-                    : 0
-                  }
-                </p>
-              </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <p className="font-semibold">En Yüksek Skor</p>
-                <p className="text-lg font-bold text-gray-800">
-                  %{quizHistory.length > 0 ? Math.max(...quizHistory.map(q => q.score)) : 0}
-                </p>
-              </div>
-            </div>
+          <div className="qh-stat">
+            <div className="qh-stat-label"><i className="fas fa-trophy"></i> En Yüksek Skor</div>
+            <div className="qh-stat-value">%{maxScore}</div>
           </div>
         </div>
+        {quizHistory.length === 0 ? (
+          <div className="qh-empty">
+            <p>Henüz quiz geçmişiniz bulunmuyor.</p>
+            <button
+              onClick={() => navigate('/create-lobby')}
+              className="qh-btn qh-btn-blue"
+            >
+              <i className="fas fa-plus-circle"></i> İlk Quiz'inizi Oluşturun
+            </button>
+          </div>
+        ) : (
+          <div className="qh-list">
+            {quizHistory.map((quiz) => (
+              <div key={quiz.id} className="qh-list-item">
+                <div className="qh-list-row">
+                  <div>
+                    <div className="qh-list-topic">{quiz.topic}</div>
+                    <div className="qh-list-date">{formatDate(quiz.date)}</div>
+                  </div>
+                  <div className="qh-list-score">
+                    <span className={`qh-score ${getScoreColor(quiz.score)}`}>%{quiz.score}</span>
+                    <span className="qh-list-detail">{quiz.correctAnswers}/{quiz.totalQuestions} doğru</span>
+                  </div>
+                </div>
+                <div className="qh-list-row qh-list-row-bottom">
+                  <div className="qh-list-stats">
+                    <span><i className="fas fa-question"></i> {quiz.totalQuestions} soru</span>
+                    <span><i className="fas fa-check"></i> {quiz.correctAnswers} doğru</span>
+                    <span><i className="fas fa-times"></i> {quiz.totalQuestions - quiz.correctAnswers} yanlış</span>
+                  </div>
+                  <button
+                    onClick={() => handleViewDetails(quiz)}
+                    className="qh-btn qh-btn-blue qh-btn-small"
+                  >
+                    Detayları Gör
+                  </button>
+                </div>
+                <div className="qh-progress-bar">
+                  <div
+                    className={`qh-progress-fill ${getScoreColor(quiz.score)}`}
+                    style={{ width: `${quiz.score}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+      <footer className="mainscreen-footer">
+        Kahoot! &copy; {new Date().getFullYear()}
+      </footer>
     </div>
   );
 }
