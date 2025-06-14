@@ -51,9 +51,10 @@ Hem frontend hem backend için `.env` dosyaları oluşturun:
 **Backend `.env`**
 
 ```env
-DATABASE_URL=postgres://username:password@localhost:5432/dbname
-JWT_SECRET=your_jwt_secret_key
-GEMINI_API_KEY=your_gemini_api_key
+PORT=5000
+DATABASE_URL=postgresql://root:e7Zj1Urnd9bdPLCjWBIOUORJCONP3dF0@dpg-d0quc195pdvs73avc2m0-a.frankfurt-postgres.render.com/kahoot_t0pd
+JWT_SECRET=emirrdvn
+GEMINI_API_KEY= kendi api keyiniz
 ```
 
 ### 3. Backend Kurulumu
