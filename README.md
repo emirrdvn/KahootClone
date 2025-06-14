@@ -106,9 +106,9 @@ Projenin kısa tanıtım videosunu YouTube üzerinden izleyin:
 
 | İsim | Rol |
 |------|-----|
-| [Emir Rıdvan Toraman] | Full Stack Developer|
-| [Fatih Parmaksız] | Backend Developer |
-| [Süleyman Asım Gelişgen] | Frontend Developer |
+| [Emir Rıdvan Toraman](https://github.com/emirrdvn) | Full Stack Developer|
+| [Fatih Parmaksız](https://github.com/Fatihparm) | Backend Developer |
+| [Süleyman Asım Gelişgen](https://github.com/gelisgen03) | Frontend Developer |
 
 ---
 
