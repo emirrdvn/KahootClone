@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 import mouseClickSound from '../sounds/mouse-click.mp3';
+import clockTickingSound from '../sounds/Clock-Ticking.mp3';
 import './css/game.css';
 
 function Game({ username }) {
@@ -21,6 +22,7 @@ function Game({ username }) {
   const timerRef = useRef(null);
   const bgRef = useRef(null);
   const clickAudioRef = useRef(null);
+  const tickingAudioRef = useRef(null);
 
   // Renkli arka plan animasyonu
   useEffect(() => {
@@ -93,10 +95,18 @@ function Game({ username }) {
       timerRef.current = setInterval(() => {
         setGameData(prev => {
           const newTimer = prev.timer - 100;
-          if (newTimer <= 0) {
+
+          if (newTimer <= 6000 && newTimer > 0) {
+            if (tickingAudioRef.current && tickingAudioRef.current.paused) {
+              tickingAudioRef.current.currentTime = 0;
+              tickingAudioRef.current.play();
+            }
+          } else if (newTimer <= 0) {
+            if (tickingAudioRef.current) tickingAudioRef.current.pause();
             clearInterval(timerRef.current);
             return { ...prev, timer: 0 };
           }
+
           return { ...prev, timer: newTimer };
         });
       }, 100);
@@ -104,18 +114,20 @@ function Game({ username }) {
     socket.on('round_result', (data) => {
       setResult(data);
       if (timerRef.current) clearInterval(timerRef.current);
+      if (tickingAudioRef.current) tickingAudioRef.current.pause();
       setGameData(prev => ({ ...prev, timer: 0 }));
     });
     socket.on('game_over', ({ winners, scores }) => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (tickingAudioRef.current) tickingAudioRef.current.pause();
       setGameData(prev => ({ ...prev, timer: 0 }));
       setWinnerList(winners);
       setShowWinner(true);
       socket.emit('leave_lobby', { lobbyId, username });
-      // navigate('/mainscreen'); // Otomatik yönlendirme kaldırıldı, kullanıcıya bırakıldı
     });
     socket.on('error', ({ message }) => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (tickingAudioRef.current) tickingAudioRef.current.pause();
       alert(message);
       setTimeout(() => navigate('/lobbies'), 500);
     });
@@ -128,6 +140,7 @@ function Game({ username }) {
       socket.off('game_over');
       socket.off('error');
       if (timerRef.current) clearInterval(timerRef.current);
+      if (tickingAudioRef.current) tickingAudioRef.current.pause();
     };
   }, [lobbyId, username, navigate]);
 
@@ -141,10 +154,7 @@ function Game({ username }) {
     navigate('/lobbies');
   };
 
-  // Bar için max skor
   const maxScore = Math.max(1, ...Object.values(gameData.scores));
-
-  // Süreyi saniye.milisaniye olarak göster
   const timerDisplay = (gameData.timer / 1000).toFixed(1);
 
   const playClickSound = () => {
@@ -164,6 +174,7 @@ function Game({ username }) {
   return (
     <div ref={bgRef} className="game-bg">
       <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
+      <audio ref={tickingAudioRef} src={clockTickingSound} preload="auto" />
       {showWinner ? (
         <div className="game-winner-modal">
           <div className="game-winner-content">

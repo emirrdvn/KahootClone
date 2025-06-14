@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import './css/welcome.css';
 import mouseClickSound from '../sounds/mouse-click.mp3';
 import { useNavigate } from 'react-router-dom';
+import backgroundMusic from '../sounds/backgraund-kahoot.mp3';
 
 function Footer() {
   return (
