@@ -76,14 +76,14 @@ function Lobbies({ username }) {
     if (clickAudioRef.current) {
       try {
         clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {}
+        clickAudioRef.current.play().catch(() => {});
+      } catch {}
     }
     setTimeout(() => navigate(path), 150);
   };
 
   const handleJoin = (lobbyId) => {
-    navigate(`/lobby/${lobbyId}`);
+    playAndNavigate(`/lobby/${lobbyId}`);
   };
 
   return (

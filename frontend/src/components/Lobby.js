@@ -94,13 +94,17 @@ function Lobby({ username }) {
     navigate('/lobbies');
   };
 
-  const playAndNavigate = (path) => {
+  const playClickSound = () => {
     if (clickAudioRef.current) {
       try {
         clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {}
+        clickAudioRef.current.play().catch(() => {});
+      } catch {}
     }
+  };
+
+  const playAndNavigate = (path) => {
+    playClickSound();
     setTimeout(() => navigate(path), 150);
   };
 
@@ -142,13 +146,12 @@ function Lobby({ username }) {
             </li>
           ))}
         </ul>
+
         <button
           onClick={() => {
             if (clickAudioRef.current) {
-              try {
-                clickAudioRef.current.currentTime = 0;
-                clickAudioRef.current.play();
-              } catch (e) {}
+              clickAudioRef.current.currentTime = 0;
+              clickAudioRef.current.play().catch(() => {});
             }
             handleReady();
           }}

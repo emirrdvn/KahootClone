@@ -15,10 +15,8 @@ function QuizHistory({ username }) {
 
   const playClickSound = () => {
     if (clickAudioRef.current) {
-      try {
-        clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {}
+      clickAudioRef.current.currentTime = 0;
+      clickAudioRef.current.play().catch(() => {});
     }
   };
 

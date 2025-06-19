@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import mouseClickSound from "../sounds/mouse-click.mp3";
 import api from '../axiosConfig';
 import './css/login.css';
-import mouseClickSound from '../sounds/mouse-click.mp3';
 
 function Login({ setUsername }) {
   const bgRef = useRef(null);
@@ -56,14 +56,13 @@ function Login({ setUsername }) {
     return () => {};
   }, []);
 
+  // Güvenli ses oynatma fonksiyonu
   const playClickSound = () => {
     if (clickAudioRef.current) {
       try {
         clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {
-        // Hata olursa sessizce geç
-      }
+        clickAudioRef.current.play().catch(() => {});
+      } catch {}
     }
   };
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import './css/welcome.css';
 import mouseClickSound from '../sounds/mouse-click.mp3';
 import { useNavigate } from 'react-router-dom';
-import backgroundMusic from '../sounds/backgraund-kahoot.mp3';
+
 
 function Footer() {
   return (
@@ -67,9 +67,9 @@ function Welcome() { // <-- Büyük harfle başlat
     if (clickAudioRef.current) {
       clickAudioRef.current.pause();
       clickAudioRef.current.currentTime = 0;
-      clickAudioRef.current.play();
+      clickAudioRef.current.play().catch(() => {});
     }
-    setTimeout(() => navigate(path), 150); // 150ms sonra yönlendir
+    setTimeout(() => navigate(path), 150);
   };
 
   return (
@@ -105,16 +105,15 @@ function Welcome() { // <-- Büyük harfle başlat
           </button>
         </div>
         <button onClick={() => {
-          if (clickAudioRef.current) {
-            clickAudioRef.current.pause();
-            clickAudioRef.current.currentTime = 0;
-            clickAudioRef.current.play();
-          }
-        }}></button>
+        if (clickAudioRef.current) {
+          clickAudioRef.current.pause();
+          clickAudioRef.current.currentTime = 0;
+          clickAudioRef.current.play().catch(() => {});
+        }
+      }}></button>
       </main>
       <Footer />
     </div>
   );
 }
-
 export default Welcome; // <-- Büyük harfle export et

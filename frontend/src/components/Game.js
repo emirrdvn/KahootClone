@@ -96,17 +96,16 @@ function Game({ username }) {
         setGameData(prev => {
           const newTimer = prev.timer - 100;
 
-          if (newTimer <= 6000 && newTimer > 0) {
-            if (tickingAudioRef.current && tickingAudioRef.current.paused) {
-              tickingAudioRef.current.currentTime = 0;
-              tickingAudioRef.current.play();
-            }
-          } else if (newTimer <= 0) {
-            if (tickingAudioRef.current) tickingAudioRef.current.pause();
-            clearInterval(timerRef.current);
-            return { ...prev, timer: 0 };
+        if (newTimer <= 6000 && newTimer > 0) {
+          if (tickingAudioRef.current && tickingAudioRef.current.paused) {
+            tickingAudioRef.current.currentTime = 0;
+            tickingAudioRef.current.play().catch(() => {});
           }
-
+        } else if (newTimer <= 0) {
+          if (tickingAudioRef.current) tickingAudioRef.current.pause();
+          clearInterval(timerRef.current);
+          return { ...prev, timer: 0 };
+        }
           return { ...prev, timer: newTimer };
         });
       }, 100);
@@ -161,8 +160,8 @@ function Game({ username }) {
     if (clickAudioRef.current) {
       try {
         clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {}
+        clickAudioRef.current.play().catch(() => {});
+      } catch {}
     }
   };
 

@@ -54,14 +54,12 @@ function MainScreen({ username }) {
 
   const playAndNavigate = (path) => {
     if (clickAudioRef.current) {
-      try {
-        clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play();
-      } catch (e) {}
+      clickAudioRef.current.currentTime = 0;
+      clickAudioRef.current.play().catch(() => {});
     }
     setTimeout(() => navigate(path), 150);
   };
-
+  
   return (
     <div ref={bgRef} className="mainscreen-bg">
       <audio ref={clickAudioRef} src={mouseClickSound} preload="auto" />
@@ -103,7 +101,7 @@ function MainScreen({ username }) {
               if (clickAudioRef.current) {
                 try {
                   clickAudioRef.current.currentTime = 0;
-                  clickAudioRef.current.play();
+                  clickAudioRef.current.play().catch(() => {});
                 } catch (e) {}
               }
               setTimeout(() => navigate('/'), 150);
